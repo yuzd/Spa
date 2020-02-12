@@ -24,8 +24,7 @@
 ![image](https://images4.c-ctrip.com/target/zb091d000001eg5teF67C.png)
 
 ### 全局配置
-
-![image](https://images4.c-ctrip.com/target/zb091d000001eg5teF67C.png)
+![image](https://images4.c-ctrip.com/target/zb0a1d000001ef32eC2D8.png)
 
 ### 服务端SSR脚本编辑器
 ![image](https://images4.c-ctrip.com/target/zb031d000001efhktECA5.png)
