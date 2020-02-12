@@ -454,7 +454,7 @@ namespace spa.Controller
                 var jsonFile = Path.Combine(_hostingEnvironment.WebRootPath,spa, "server.js");
                 if (!File.Exists(jsonFile))
                 {
-                    await context.Response.WriteAsync($"err:{jsonFile} not found!");
+                    await context.Response.WriteAsync($"notfound");
                     return;
                 }
                 

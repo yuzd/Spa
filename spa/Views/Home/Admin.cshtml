@@ -595,13 +595,12 @@ var _setTimer = undefined;
     //服务端渲染的serverjs配置
     function serverJs(spa) {
          spaJax('/' + spa +'-serverjsget.api', 'get', 'html').done(function(response) {
-             if (response.substr(0,4) == 'err:') {
-                 swal({
-                     title: "",
-                     text: response,
-                     type: "error"
-                 });
-                 return;
+             if (response == 'notfound') {
+                 response = 'module.exports = {\n'+
+                             '  main:function (path){\n'+
+                             '    \n'+
+                             '  }\n'+
+                             '};';
              }
              
              $('#spaSpan').html(spa);

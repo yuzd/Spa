@@ -114,13 +114,13 @@ namespace JavaScriptViewEngine
                     return re;
                 }
 
-                var jsonFile = new FileModel(_hostingEnvironment, "appsettings.json");
-                if (jsonFile.IsExist && (_appJsonLastWriteTime == null || _appJsonLastWriteTime != jsonFile.LastModifyTime))
+                var jsonFile = new FileInfo(Path.Combine(_hostingEnvironment.WebRootPath, "appsettings.json"));
+                if (jsonFile.Exists && (_appJsonLastWriteTime == null || _appJsonLastWriteTime != jsonFile.LastWriteTime))
                 {
-                    _appJsonLastWriteTime = jsonFile.LastModifyTime;
+                    _appJsonLastWriteTime = jsonFile.LastWriteTime;
                     try
                     {
-                        this._appsettingsJson = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonFile.GetContent());
+                        this._appsettingsJson = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(CopyHelper.ReadAllText(jsonFile.FullName));
                     }
                     catch (Exception e)
                     {
@@ -147,7 +147,7 @@ namespace JavaScriptViewEngine
                     try
                     {
                         var jsValue = exports.AsObject().Get("main").Invoke(new JsValue(nomarlPath)).ToString();
-                        if (!string.IsNullOrEmpty(jsValue) && jsValue!="null")
+                        if (!string.IsNullOrEmpty(jsValue) && jsValue!="null" && jsValue!="undefined")
                         {
                             serverJsResult = JObject.Parse(jsValue);
                         }
