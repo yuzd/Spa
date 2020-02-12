@@ -20,8 +20,7 @@
 ![image](https://images4.c-ctrip.com/target/zb091d000001eg5teF67C.png)
 
 ### 重新部署上传，快速回滚到上一个上传版本
-
-![image](https://images4.c-ctrip.com/target/zb091d000001eg5teF67C.png)
+![image](https://images4.c-ctrip.com/target/zb0d1d000001eca8g5E55.png)
 
 ### 全局配置
 ![image](https://images4.c-ctrip.com/target/zb0a1d000001ef32eC2D8.png)
