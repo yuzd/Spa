@@ -1,15 +1,36 @@
+using System.Collections.Generic;
+using CSRedis;
+
 namespace spa.Models
 {
     public class RedisClient
     {
-        public static string Get(string key)
+        private static readonly Dictionary<string, CSRedis.CSRedisClient> client = new Dictionary<string, CSRedisClient>();
+
+        private readonly CSRedis.CSRedisClient _redis;
+
+        public RedisClient(string name)
         {
-            return RedisHelper.Get(key);
+            if (!client.TryGetValue(name, out var redis))
+            {
+                _redis = new CSRedisClient(name);
+                client.TryAdd(name, _redis);
+            }
+            else
+            {
+                _redis = redis;
+            }
         }
 
-        public static void Set(string key, string vaue, int senconds = -1)
+        public string get(string key)
         {
-            RedisHelper.Set(key, vaue, senconds);
+            return _redis.Get(key);
+        }
+
+        public void set(string key, string vaue, int senconds = -1)
+        {
+            _redis.Set(key, vaue, senconds);
         }
     }
+
 }

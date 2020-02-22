@@ -42,6 +42,7 @@ namespace Jint.CommonJS
 
             var toString = @"
 
+var server = require('server');
 Object.prototype.toString = function() {
 				var str = '{'
 				for(var tmp in this) {

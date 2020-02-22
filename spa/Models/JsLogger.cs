@@ -6,7 +6,7 @@ using NLog;
 
 namespace spa.Models
 {
-   
+
     /// <summary>
     /// js运行时日志
     /// </summary>
@@ -18,19 +18,19 @@ namespace spa.Models
             logger = LogManager.GetCurrentClassLogger();
         }
 
-        public static void Info(string msg)
+        public void info(string msg)
         {
             logger.Info(msg);
         }
-        public static void Warn(string msg)
+        public void warn(string msg)
         {
             logger.Warn(msg);
         }
-        public static void Error(string msg)
+        public void error(string msg)
         {
             logger.Error(msg);
         }
-        public static void Debug(string msg)
+        public void debug(string msg)
         {
             logger.Debug(msg);
         }

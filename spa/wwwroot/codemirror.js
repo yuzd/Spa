@@ -9683,7 +9683,7 @@
                 finished = true;
                 completion.close();
                 completion.cm.off("cursorActivity", activity);
-                if (completion.cm.tabrisAutoComplete) completion.cm.off("cursorActivity", completion.cm.tabrisAutoComplete);
+                if (completion.cm.serverAutoComplete) completion.cm.off("cursorActivity", completion.cm.serverAutoComplete);
                 if (data) CodeMirror.signal(data, "close");
             }
 
@@ -18586,57 +18586,57 @@
     "use strict";
 
     var defaultRules = {
-        "UnknownTabrisType": { "severity": "error" },
-        "UnknownTabrisProperty": { "severity": "error" },
-        "UnknownTabrisEvent": { "severity": "error" }
+        "UnknownServerType": { "severity": "error" },
+        "UnknownServerProperty": { "severity": "error" },
+        "UnknownServerEvent": { "severity": "error" }
     };
 
     if (tern.registerLint) {
 
-        // validate tabris.create(
-        tern.registerLint("tabrisCreate_lint", function (node, addMessage, getRule) {
+        // validate server.create(
+        tern.registerLint("serverCreate_lint", function (node, addMessage, getRule) {
             var argNode = node.arguments[0];
             if (argNode) {
-                var cx = infer.cx(), types = cx.definitions.tabris["!types"], typeName = argNode.value;
-                if (!types.hasProp(typeName)) addMessage(argNode, "Unknown tabris type '" + typeName + "'", defaultRules.UnknownTabrisType.severity);
+                var cx = infer.cx(), types = cx.definitions.server["!types"], typeName = argNode.value;
+                if (!types.hasProp(typeName)) addMessage(argNode, "Unknown server type '" + typeName + "'", defaultRules.UnknownServerType.severity);
             }
         });
 
         // validate widget.get(
-        tern.registerLint("tabrisGet_lint", function (node, addMessage, getRule) {
+        tern.registerLint("serverGet_lint", function (node, addMessage, getRule) {
             var argNode = node.arguments[0];
             if (argNode) {
-                var cx = infer.cx(), proxyType = argNode._tabris && argNode._tabris.proxyType, propertyName = argNode.value;
-                if (!getPropertyType(proxyType, propertyName)) addMessage(argNode, "Unknown tabris property '" + propertyName + "'", defaultRules.UnknownTabrisProperty.severity);
+                var cx = infer.cx(), proxyType = argNode._server && argNode._server.proxyType, propertyName = argNode.value;
+                if (!getPropertyType(proxyType, propertyName)) addMessage(argNode, "Unknown server property '" + propertyName + "'", defaultRules.UnknownServerProperty.severity);
             }
         });
 
         // validate on, off, trigger event(
-        tern.registerLint("tabrisEvent_lint", function (node, addMessage, getRule) {
+        tern.registerLint("serverEvent_lint", function (node, addMessage, getRule) {
             var argNode = node.arguments[0];
             if (argNode) {
-                var cx = infer.cx(), proxyType = argNode._tabris && argNode._tabris.proxyType, eventName = argNode.value;
-                if (!getEventType(proxyType, eventName)) addMessage(argNode, "Unknown tabris event '" + eventName + "'", defaultRules.UnknownTabrisEvent.severity);
+                var cx = infer.cx(), proxyType = argNode._server && argNode._server.proxyType, eventName = argNode.value;
+                if (!getEventType(proxyType, eventName)) addMessage(argNode, "Unknown server event '" + eventName + "'", defaultRules.UnknownServerEvent.severity);
             }
         });
 
     }
 
-    // tabris.create(
+    // server.create(
 
-    infer.registerFunction("tabris_create", function (_self, args, argNodes) {
+    infer.registerFunction("server_create", function (_self, args, argNodes) {
         if (!argNodes || !argNodes.length || argNodes[0].type != "Literal" || typeof argNodes[0].value != "string")
             return infer.ANull;
-        var cx = infer.cx(), server = cx.parent, name = argNodes[0].value, locals = cx.definitions.tabris["!types"], tabrisType = locals.hasProp(name);
-        argNodes[0]._tabris = { "type": "tabris_create" };
-        if (tabrisType) return new infer.Obj(tabrisType.getType().getProp("prototype").getType());
+        var cx = infer.cx(), server = cx.parent, name = argNodes[0].value, locals = cx.definitions.server["!types"], serverType = locals.hasProp(name);
+        argNodes[0]._server = { "type": "server_create" };
+        if (serverType) return new infer.Obj(serverType.getType().getProp("prototype").getType());
         return infer.ANull;
     });
 
     // widget.get(
 
     function getObjectProperties(proto) {
-        var cx = infer.cx(), locals = cx.definitions.tabris;
+        var cx = infer.cx(), locals = cx.definitions.server;
         var objectName = proto.name, index = objectName.indexOf("!types.");
         if (index == 0) objectName = objectName.substring("!types.".length, objectName.length);
         objectName = objectName.substring(0, objectName.indexOf('.')) + 'Properties';
@@ -18655,13 +18655,13 @@
         return null;
     }
 
-    ["tabris_Proxy_get", "tabris_Proxy_set"].forEach(function (name) {
+    ["server_Proxy_get", "server_Proxy_set"].forEach(function (name) {
         infer.registerFunction(name, function (_self, args, argNodes) {
             if (!argNodes || !argNodes.length || argNodes[0].type != "Literal" || typeof argNodes[0].value != "string")
                 return infer.ANull;
 
             var widgetType = _self.getType(), propertyName = argNodes[0].value, propertyType = getPropertyType(widgetType, propertyName);
-            argNodes[0]._tabris = { "type": "tabris_Proxy_get", "proxyType": widgetType };
+            argNodes[0]._server = { "type": "server_Proxy_get", "proxyType": widgetType };
             if (propertyType) return propertyType.getType();
             return infer.ANull;
         });
@@ -18670,7 +18670,7 @@
     // widget.on(
 
     function getEventProperties(proto) {
-        var cx = infer.cx(), locals = cx.definitions.tabris;
+        var cx = infer.cx(), locals = cx.definitions.server;
         var objectName = proto.name, index = objectName.indexOf("!types.");
         if (index == 0) objectName = objectName.substring("!types.".length, objectName.length);
         objectName = objectName.substring(0, objectName.indexOf('.')) + 'Events';
@@ -18689,15 +18689,15 @@
         return null;
     }
 
-    infer.registerFunction("tabris_Proxy_eventtype", function (_self, args, argNodes) {
+    infer.registerFunction("server_Proxy_eventtype", function (_self, args, argNodes) {
         if (!argNodes || !argNodes.length || argNodes[0].type != "Literal" || typeof argNodes[0].value != "string")
             return infer.ANull;
 
         var proxyType = _self.getType();
-        argNodes[0]._tabris = { "type": "tabris_Proxy_eventtype", "proxyType": proxyType };
+        argNodes[0]._server = { "type": "server_Proxy_eventtype", "proxyType": proxyType };
     });
 
-    tern.registerPlugin("tabris", function (server, options) {
+    tern.registerPlugin("server", function (server, options) {
         return {
             defs: defs,
             passes: { completion: completion }
@@ -18751,32 +18751,32 @@
         if (callExpr && callExpr.node.arguments && callExpr.node.arguments.length && callExpr.node.arguments.length > 0) {
             var nodeArg = callExpr.node.arguments[0];
             if (!(nodeArg.start <= wordPos && nodeArg.end >= wordPos)) return;
-            if (nodeArg._tabris) {
+            if (nodeArg._server) {
                 var startQuote = getQuote(nodeArg.raw.charAt(0)), endQuote = getQuote(nodeArg.raw.length > 1 ? nodeArg.raw.charAt(nodeArg.raw.length - 1) : null);
                 var wordEnd = endQuote != null ? nodeArg.end - 1 : nodeArg.end, wordStart = startQuote != null ? nodeArg.start + 1 : nodeArg.start,
                     word = nodeArg.value.slice(0, nodeArg.value.length - (wordEnd - wordPos));
                 if (query.caseInsensitive) word = word.toLowerCase();
 
-                switch (nodeArg._tabris.type) {
-                    case "tabris_Proxy_get":
-                    case "tabris_Proxy_set":
-                        var widgetType = nodeArg._tabris.proxyType, proto = widgetType.proto, propertyType = null;
+                switch (nodeArg._server.type) {
+                    case "server_Proxy_get":
+                    case "server_Proxy_set":
+                        var widgetType = nodeArg._server.proxyType, proto = widgetType.proto, propertyType = null;
                         while (proto) {
                             var objType = getObjectProperties(proto);
                             if (objType) infer.forAllPropertiesOf(objType, gather);
                             proto = proto.proto;
                         }
                         break;
-                    case "tabris_Proxy_eventtype":
-                        var widgetType = nodeArg._tabris.proxyType, proto = widgetType.proto, propertyType = null;
+                    case "server_Proxy_eventtype":
+                        var widgetType = nodeArg._server.proxyType, proto = widgetType.proto, propertyType = null;
                         while (proto) {
                             var objType = getEventProperties(proto);
                             if (objType) infer.forAllPropertiesOf(objType, gather);
                             proto = proto.proto;
                         }
                         break;
-                    case "tabris_create":
-                        var types = cx.definitions.tabris["!types"];
+                    case "server_create":
+                        var types = cx.definitions.server["!types"];
                         overrideType = "string";
                         infer.forAllPropertiesOf(types, gather);
                         break;
@@ -18800,7 +18800,7 @@
     }
 
     var defs = {
-        "!name": "tabris",
+        "!name": "server",
         "!define": {
             "!properties": {
                 "LOGProperties": {
@@ -18810,9 +18810,9 @@
                     }
                 },
                 "SQLProperties": {
-                    "name": {
+                    "db": {
                         "!type": "string",
-                        "!doc": "The db mapping name in config file."
+                        "!doc": "The db connectionstring."
                     },
                     "type": {
                         "!type": "string",
@@ -18840,12 +18840,33 @@
                         "!type": "properties",
                         "!doc": "The request headers(key-value)."
                     }
+                },
+                "REDISProperties": {
+                    "db": {
+                        "!type": "string",
+                        "!doc": "The redis connectstring."
+                    }
                 }
             },
             "!events": {
 
             },
             "!types": {
+                "REDIS": {
+                    "!type": "fn()",
+                    "!url": "",
+                    "!doc": "Redis Function .",
+                    "prototype": {
+                        "get": {
+                            "!type": "fn(key: string) -> !this",
+                            "!doc": "get redis value by key"
+                        },
+                        "set": {
+                            "!type": "fn(key: string, value: string, seconds: number) -> !this",
+                            "!doc": "set value to redis by key"
+                        }
+                    }
+                },
                 "SQL": {
                     "!type": "fn()",
                     "!url": "",
@@ -18859,25 +18880,9 @@
                             "!type": "fn(sql: string, options?: ?) -> !this",
                             "!doc": "Execute insertWithIdentity sql"
                         },
-                        "insert": {
-                            "!type": "fn(sql: string, options?: ?) -> !this",
-                            "!doc": "Execute insert sql"
-                        },
-                        "update": {
-                            "!type": "fn(sql: string, options?: ?) -> !this",
-                            "!doc": "Execute update sql"
-                        },
-                        "delete": {
-                            "!type": "fn(sql: string, options?: ?) -> !this",
-                            "!doc": "Execute delete sql"
-                        },
                         "query": {
                             "!type": "fn(sql: string, options?: ?) -> !this",
                             "!doc": "Execute query sql"
-                        },
-                        "useTransaction": {
-                            "!type": "fn(func: fn(), options?: ?) -> !this",
-                            "!doc": "Execute sql in transaction"
                         }
                     }
                 },
@@ -18886,13 +18891,9 @@
                     "!url": "",
                     "!doc": "HTTP Function .",
                     "prototype": {
-                        "getString": {
+                        "request": {
                             "!type": "fn(options?: ?) -> !this",
                             "!doc": "Execute httpr.request, return result as string"
-                        },
-                        "getJson": {
-                            "!type": "fn(options?: ?) -> !this",
-                            "!doc": "Execute httpr.request, return result as json object"
                         }
                     }
                 },
@@ -18921,13 +18922,13 @@
                 }
             }
         },
-        "tabris": {
+        "server": {
             "create": {
-                "!type": "fn(type: string, properties?: ?) -> !custom:tabris_create",
+                "!type": "fn(type: string, properties?: ?) -> !custom:server_create",
                 "!doc": "Creates a instance of a given type.",
                 "!url": "",
                 "!data": {
-                    "!lint": "tabrisCreate_lint"
+                    "!lint": "serverCreate_lint"
                 }
             }
         }
@@ -19179,7 +19180,7 @@
                 }
             });
             if(obj.list.length>100 && prefixWord!='.') return {from: from, to: to, list: []};
-            if (cm.tabrisAutoComplete) cm.off("cursorActivity", cm.tabrisAutoComplete);
+            if (cm.serverAutoComplete) cm.off("cursorActivity", cm.serverAutoComplete);
             cm.showHitTime = new Date().getTime();
             c(obj);
         });
@@ -23522,6 +23523,11 @@
             "!url": "https://developer.mozilla.org/en/docs/DOM/element.focus",
             "!doc": "Sets focus on the specified element, if it can be focused."
         },
+        "require": {
+            "!type": "fn(name: string)",
+            "!url": "https://developer.mozilla.org/en/docs/DOM/element.focus",
+            "!doc": "commonJS"
+        },
         "onload": {
             "!type": "?",
             "!url": "https://developer.mozilla.org/en/docs/DOM/window.onload",
@@ -25099,7 +25105,7 @@
     // Note: the string autocompletion works for the first function argument.
     CodeMirror.commands.contextAutocomplete = function(cm) {
         var contextAutocompleteFunctionArgs = {
-            "tabris.create": "type",
+            "server.create": "type",
             "set": "name",
             "get": "name",
             "on": "type",

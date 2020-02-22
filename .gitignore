@@ -3,3 +3,5 @@ obj/
 /packages/
 .idea/
 backup/
+spa/spa.csproj.user
+.vs/

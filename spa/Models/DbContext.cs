@@ -1,19 +1,203 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
+using System.Data.SqlClient;
 using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using AntData.ORM.Data;
-using AntData.ORM.Linq;
+using Dapper;
+using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 
 namespace spa.Models
 {
+
     public class DbContext
     {
-        public static MysqlDbContext<LitoEntitys> DB => new MysqlDbContext<LitoEntitys>("pro");
+        private readonly string _type;
+        private readonly string _name;
+        private readonly bool isSqlserver;
+
+        public DbContext(string type, string name)
+        {
+            _type = type;
+            isSqlserver = !type.Equals("mysql");
+            _name = name;
+        }
+
+
+        /// <summary>
+        /// 执行 insert update delete
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="param"></param>
+        /// <returns></returns>
+        public int Excute(string sql, object param)
+        {
+            if (param != null && param is ExpandoObject properties)
+            {
+                var dbArgs = new DynamicParameters();
+                foreach (var property in properties)
+                {
+                    dbArgs.Add(property.Key, property.Value);
+                }
+
+                if (dbArgs.ParameterNames != null && dbArgs.ParameterNames.Any())
+                {
+                    using (var connection = getConnection())
+                    {
+                        return connection.Execute(sql, dbArgs);
+                    }
+
+                }
+            }
+
+            using (var connection = getConnection())
+            {
+                return connection.Execute(sql);
+            }
+        }
+
+
+        /// <summary>
+        /// DB执行返回主键
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="param"></param>
+        /// <returns></returns>
+        public string ExecuteScalar(string sql, object param)
+        {
+            if (isSqlserver)
+            {
+                if (!sql.Contains("select scope_identity()"))
+                {
+                    sql += sql.EndsWith(";") ? "select scope_identity()" : ";select scope_identity()";
+                }
+            }
+            else
+            {
+                if (!sql.Contains("select last_insert_id()"))
+                {
+                    sql += sql.EndsWith(";") ? "select last_insert_id()" : ";select last_insert_id()";
+                }
+            }
+
+            if (param != null && param is ExpandoObject properties)
+            {
+                var dbArgs = new DynamicParameters();
+                foreach (var property in properties)
+                {
+                    dbArgs.Add(property.Key, property.Value);
+                }
+
+                if (dbArgs.ParameterNames != null && dbArgs.ParameterNames.Any())
+                {
+                    using (var connection = getConnection())
+                    {
+                        return connection.ExecuteScalar<string>(sql, dbArgs);
+                    }
+
+                }
+            }
+
+            using (var connection = getConnection())
+            {
+                return connection.ExecuteScalar<string>(sql);
+            }
+        }
+
+
+        /// <summary>
+        /// DB执行返回一个DataTable
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="param"></param>
+        /// <returns></returns>
+        public DataTable QueryTable(string sql, object param)
+        {
+            if (param != null && param is ExpandoObject properties)
+            {
+                var dbArgs = new DynamicParameters();
+                foreach (var property in properties)
+                {
+                    dbArgs.Add(property.Key, property.Value);
+                }
+
+                if (dbArgs.ParameterNames != null && dbArgs.ParameterNames.Any())
+                {
+                    using (var connection = getConnection())
+                    {
+                        var dt = new DataTable();
+                        dt.Load(connection.ExecuteReader(sql, dbArgs));
+                        return dt;
+                    }
+
+                }
+
+            }
+
+            using (var connection = getConnection())
+            {
+                var dt = new DataTable();
+                dt.Load(connection.ExecuteReader(sql));
+                return dt;
+            }
+        }
+
+
+
+
+        private DbConnection getConnection()
+        {
+            switch (_type)
+            {
+                case "mysql":
+                    return new MySqlConnection(_name);
+                case "mssql":
+                case "sqlserver":
+                    return new SqlConnection(_name);
+                default:
+                    return null;
+            }
+        }
+
+
+    }
+
+    public class JsDbContext
+    {
+        public DbContext DB;
+
+
+        public JsDbContext(string type, string name)
+        {
+            DB = new DbContext(type, name);
+        }
+
+
+        /// <summary>
+        /// 执行sql并拿到主键
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <returns></returns>
+        public string insertWithIdentity(string sql)
+        {
+            return insertWithIdentity(sql, null);
+        }
+
+        /// <summary>
+        /// 执行sql并拿到主键
+        /// </summary>
+        /// <param name="sql"></param>
+        /// <param name="param"></param>
+        /// <returns></returns>
+        public string insertWithIdentity(string sql, object param)
+        {
+            return DB.ExecuteScalar(sql, param);
+
+        }
 
         /// <summary>
         /// 封装成js方法
@@ -21,25 +205,9 @@ namespace spa.Models
         /// <param name="sql"></param>
         /// <param name="param"></param>
         /// <returns></returns>
-        public static string Query(string sql, object param)
+        public string query(string sql, object param)
         {
-            DataTable table = null;
-            if (param != null && param is ExpandoObject properties)
-            {
-                List<DataParameter> dataParameters = new List<DataParameter>();
-                foreach (var property in properties)
-                {
-                    dataParameters.Add(new DataParameter(property.Key, property.Value));
-                }
-
-                if (dataParameters.Any()) table = DB.QueryTable(sql, dataParameters.ToArray());
-            }
-
-            if (table == null)
-            {
-                table = DB.QueryTable(sql);
-            }
-
+            DataTable table = DB.QueryTable(sql, param);
             var JSONString = DataTableToJSONWithJavaScriptSerializer(table);
             return JSONString;
         }
@@ -49,11 +217,9 @@ namespace spa.Models
         /// </summary>
         /// <param name="sql"></param>
         /// <returns></returns>
-        public static string Query(string sql)
+        public string query(string sql)
         {
-            DataTable table = DB.QueryTable(sql);
-            var JSONString = DataTableToJSONWithJavaScriptSerializer(table);
-            return JSONString;
+            return query(sql, null);
         }
 
         /// <summary>
@@ -62,23 +228,9 @@ namespace spa.Models
         /// <param name="sql"></param>
         /// <param name="param"></param>
         /// <returns></returns>
-        public static bool Excute(string sql, object param)
+        public int exec(string sql, object param)
         {
-            if (param != null && param is ExpandoObject properties)
-            {
-                List<DataParameter> dataParameters = new List<DataParameter>();
-                foreach (var property in properties)
-                {
-                    dataParameters.Add(new DataParameter(property.Key, property.Value));
-                }
-
-                if (dataParameters.Any())
-                {
-                    return DB.Execute<int>(sql, dataParameters.ToArray()) > 0;
-                }
-            }
-
-            return DB.Execute<int>(sql) > 0;
+            return DB.Excute(sql, param);
         }
 
         /// <summary>
@@ -86,10 +238,9 @@ namespace spa.Models
         /// </summary>
         /// <param name="sql"></param>
         /// <returns></returns>
-        public static bool Excute(string sql)
+        public int exec(string sql)
         {
-            var result = DB.Execute<int>(sql);
-            return result > 0;
+            return exec(sql, null);
         }
 
         public static string DataTableToJSONWithJavaScriptSerializer(DataTable table)
@@ -117,13 +268,6 @@ namespace spa.Models
         }
     }
 
-    public partial class LitoEntitys : IEntity
-    {
-        public IQueryable<T> Get<T>() where T : class
-        {
-            throw new NotImplementedException();
-        }
-    }
 
     /// <summary>
     /// Converts a <see cref="DataRow"/> object to and from JSON.

@@ -139,9 +139,7 @@ namespace JavaScriptViewEngine
                 {
                     var exports = engine
                         .CommonJS()
-                        .RegisterInternalModule("db", typeof(DbContext))
-                        .RegisterInternalModule("redis", typeof(RedisClient))
-                        .RegisterInternalModule("log", typeof(JsLogger))
+                        .RegisterInternalModule("server", typeof(Server))
                         .RunMain(jsFileContent.FilePath);
 
                     try
