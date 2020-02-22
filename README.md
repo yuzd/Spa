@@ -30,7 +30,7 @@
 ![image](https://images4.c-ctrip.com/target/zb0a1d000001ef32eC2D8.png)
 
 ### 服务端SSR脚本编辑器
-![image](https://images4.c-ctrip.com/target/zb031d000001efhktECA5.png)
+![image](https://images4.c-ctrip.com/target/zb0h1d000001eleyd2B05.png)
 
 ### 日志查看
 ![image](https://images4.c-ctrip.com/target/zb0s1d000001ekn161874.png)
