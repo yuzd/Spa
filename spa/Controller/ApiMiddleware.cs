@@ -129,8 +129,10 @@ namespace spa.Controller
             var credentials = Encoding.UTF8.GetString(credentialBytes).Split(new[] {':'}, 2);
             var username = credentials[0];
             var password = credentials[1];
-            var localUserName = _configuration["BasicAuth:Name"];
-            var localPassword = _configuration["BasicAuth:Password"];
+            var name = Environment.GetEnvironmentVariable("BasicAuth_Name");
+            var pwd = Environment.GetEnvironmentVariable("BasicAuth_Pwd");
+            var localUserName = string.IsNullOrEmpty(name) ? _configuration["BasicAuth:Name"] : name;
+            var localPassword = string.IsNullOrEmpty(pwd) ? _configuration["BasicAuth:Password"] : pwd;
             if (!string.IsNullOrEmpty(localUserName) && !string.IsNullOrEmpty(localPassword) && (!username.Equals(localUserName) ||
                                                                                                  !password.Equals(localPassword)))
             {

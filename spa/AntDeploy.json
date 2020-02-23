@@ -1,0 +1,103 @@
+﻿{
+  "Env": [
+    {
+      "Name": "linux",
+      "ServerList": [],
+      "LinuxServerList": [
+        {
+          "UserName": "root",
+          "Pwd": "3F7F70A4DFC4B5AF661BE6E40577191B",
+          "Host": "192.168.159.129",
+          "NickName": "local",
+          "IIsFireUrl": null,
+          "DockerFireUrl": "",
+          "WindowsServiceFireUrl": null
+        }
+      ],
+      "IgnoreList": [],
+      "WindowsBackUpIgnoreList": []
+    },
+    {
+      "Name": "pro",
+      "ServerList": [],
+      "LinuxServerList": [
+        {
+          "UserName": "root",
+          "Pwd": "BFE67654BB270EBB76DE3BF2C2F8A209572333E82902C39EEEFB1205A2AA2B01",
+          "Host": "47.254.173.216",
+          "NickName": "",
+          "IIsFireUrl": null,
+          "DockerFireUrl": "",
+          "WindowsServiceFireUrl": null
+        }
+      ],
+      "IgnoreList": [],
+      "WindowsBackUpIgnoreList": []
+    }
+  ],
+  "IIsConfig": {
+    "SdkType": null,
+    "WebSiteName": "",
+    "LastEnvName": null,
+    "EnvPairList": [
+      {
+        "EnvName": "linux",
+        "ConfigName": "",
+        "DockerPort": null,
+        "DockerEnvName": null,
+        "DockerVolume": null
+      },
+      {
+        "EnvName": "pro",
+        "ConfigName": "",
+        "DockerPort": null,
+        "DockerEnvName": null,
+        "DockerVolume": null
+      }
+    ]
+  },
+  "WindowsServiveConfig": {
+    "ServiceName": "",
+    "SdkType": null,
+    "LastEnvName": null,
+    "EnvPairList": [
+      {
+        "EnvName": "linux",
+        "ConfigName": "",
+        "DockerPort": null,
+        "DockerEnvName": null,
+        "DockerVolume": null
+      },
+      {
+        "EnvName": "pro",
+        "ConfigName": "",
+        "DockerPort": null,
+        "DockerEnvName": null,
+        "DockerVolume": null
+      }
+    ]
+  },
+  "DockerConfig": {
+    "Prot": "5000",
+    "AspNetCoreEnv": "",
+    "LastEnvName": "pro",
+    "RemoveDaysFromPublished": "10",
+    "Volume": "",
+    "EnvPairList": [
+      {
+        "EnvName": "linux",
+        "ConfigName": null,
+        "DockerPort": "5000",
+        "DockerEnvName": "",
+        "DockerVolume": ""
+      },
+      {
+        "EnvName": "pro",
+        "ConfigName": null,
+        "DockerPort": "5000",
+        "DockerEnvName": "",
+        "DockerVolume": ""
+      }
+    ]
+  }
+}

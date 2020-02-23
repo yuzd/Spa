@@ -1,3 +1,4 @@
+using System;
 using JavaScriptViewEngine;
 using LogDashboard;
 using LogDashboard.Authorization.Filters;
@@ -27,8 +28,10 @@ namespace spa
 
             services.AddLogDashboard(opt =>
             {
-                var localUserName = _configuration["BasicAuth:Name"];
-                var localPassword = _configuration["BasicAuth:Password"];
+                var name = Environment.GetEnvironmentVariable("BasicAuth_Name");
+                var pwd = Environment.GetEnvironmentVariable("BasicAuth_Pwd");
+                var localUserName =  string.IsNullOrEmpty(name)? _configuration["BasicAuth:Name"]: name;
+                var localPassword = string.IsNullOrEmpty(pwd)? _configuration["BasicAuth:Password"]: pwd;
                 if (!string.IsNullOrEmpty(localUserName) && !string.IsNullOrEmpty(localPassword))
                 {
                     opt.AddAuthorizationFilter(new LogDashboardBasicAuthFilter(localUserName, localPassword));

@@ -5,6 +5,7 @@
 - 可以设置环境变量供SSR功能使用
 - 服务端脚本提供执行日志 redis db三大组件打造强大的基于js的ssr服务端运行脚本功能
 - 脚本编辑器有智能代码提示
+- Docker快速启动服务：docker run -e BasicAuth_Pwd='xxxx' -d -p 80:5000 nainaigu/spa:v1
 
 ## 本方案的目的
 
