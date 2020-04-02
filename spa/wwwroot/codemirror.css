@@ -1286,7 +1286,7 @@ strong {
     overflow: hidden;
     padding: 2px 5px;
     position: fixed;
-    z-index: 100;
+    z-index: 10000;
     max-width: 600px;
     opacity: 0;
     transition: opacity .4s;
