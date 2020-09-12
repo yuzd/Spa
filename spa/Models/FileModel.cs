@@ -7,7 +7,7 @@ namespace spa.Models
 {
     public class FileModel
     {
-        public FileModel(IHostingEnvironment env, string action, string file = "index.html")
+        public FileModel(IWebHostEnvironment env, string action, string file = "index.html")
         {
             Action = action;
 

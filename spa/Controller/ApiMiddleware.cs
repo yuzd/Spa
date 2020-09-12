@@ -6,14 +6,13 @@ using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JavaScriptViewEngine.Utils;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using NLog;
+using spa.JavaScriptViewEngine.Utils;
 
 namespace spa.Controller
 {
@@ -22,8 +21,6 @@ namespace spa.Controller
     /// </summary>
     public class ApiMiddleware
     {
-        private readonly IHostingEnvironment _hostingEnvironment;
-        private readonly IConfiguration _configuration;
         private readonly RequestDelegate _next;
         private static readonly Logger logger;
         private readonly string _backupFolder;
@@ -34,18 +31,17 @@ namespace spa.Controller
             logger = LogManager.GetCurrentClassLogger();
         }
 
-        public ApiMiddleware(Microsoft.AspNetCore.Hosting.IHostingEnvironment hostingEnvironment, IConfiguration configuration, RequestDelegate next)
+        public ApiMiddleware( RequestDelegate next)
         {
-            _hostingEnvironment = hostingEnvironment;
-            _configuration = configuration;
             _next = next;
-           
-            if (int.TryParse(_configuration["BackUpLimit"], out var backUpLimit))
+
+            var backupLimit = ConfigHelper.GetConfig("BackUpLimit", "1");
+            if (int.TryParse(backupLimit, out var backUpLimit))
             {
                 _backUpLimit = backUpLimit;
             }
             
-            _backupFolder = Path.Combine(_hostingEnvironment.ContentRootPath, "backup");
+            _backupFolder =ConfigHelper.BackupPath;
             if (!Directory.Exists(_backupFolder)) Directory.CreateDirectory(_backupFolder);
         }
 
@@ -129,10 +125,8 @@ namespace spa.Controller
             var credentials = Encoding.UTF8.GetString(credentialBytes).Split(new[] {':'}, 2);
             var username = credentials[0];
             var password = credentials[1];
-            var name = Environment.GetEnvironmentVariable("BasicAuth_Name");
-            var pwd = Environment.GetEnvironmentVariable("BasicAuth_Pwd");
-            var localUserName = string.IsNullOrEmpty(name) ? _configuration["BasicAuth:Name"] : name;
-            var localPassword = string.IsNullOrEmpty(pwd) ? _configuration["BasicAuth:Password"] : pwd;
+            var localUserName = ConfigHelper.GetConfig("BasicAuth:Name");
+            var localPassword = ConfigHelper.GetConfig("BasicAuth:Pwd");
             if (!string.IsNullOrEmpty(localUserName) && !string.IsNullOrEmpty(localPassword) && (!username.Equals(localUserName) ||
                                                                                                  !password.Equals(localPassword)))
             {
@@ -159,7 +153,7 @@ namespace spa.Controller
             }
 
             //根目录
-            var filePath = Path.Combine(_hostingEnvironment.WebRootPath, path);
+            var filePath = Path.Combine(ConfigHelper.WebRootPath, path);
             if (!isReUpload)
             {
                 //查看是否已经存在
@@ -312,7 +306,7 @@ namespace spa.Controller
                 return;
             }
 
-            var destFolder = Path.Combine(_hostingEnvironment.WebRootPath, action);
+            var destFolder = Path.Combine(ConfigHelper.WebRootPath, action);
             if (!Directory.Exists(destFolder))
             {
                 await context.Response.WriteAsync($"{destFolder} not exist");
@@ -378,7 +372,7 @@ namespace spa.Controller
                 return;
             }
 
-            var filePath = Path.Combine(_hostingEnvironment.WebRootPath, path);
+            var filePath = Path.Combine(ConfigHelper.WebRootPath, path);
             if (!Directory.Exists(filePath))
             {
                 await context.Response.WriteAsync("success");
@@ -421,7 +415,7 @@ namespace spa.Controller
             }
 
 
-            var folderList = Directory.GetDirectories(_hostingEnvironment.WebRootPath);
+            var folderList = Directory.GetDirectories(ConfigHelper.WebRootPath);
             var list = (from d in folderList
                     let f = new DirectoryInfo(d)
                     select new
@@ -439,7 +433,7 @@ namespace spa.Controller
         {
             if (path.Equals("getglobaljson"))
             {
-                var jsonFile = Path.Combine(_hostingEnvironment.WebRootPath, "appsettings.json");
+                var jsonFile = Path.Combine(ConfigHelper.WebRootPath, "appsettings.json");
                 if (!File.Exists(jsonFile))
                 {
                     await context.Response.WriteAsync($"err:{jsonFile} not found!");
@@ -453,7 +447,7 @@ namespace spa.Controller
             if (path.EndsWith("serverjsget"))
             {
                 var spa = path.Split('-')[0];
-                var jsonFile = Path.Combine(_hostingEnvironment.WebRootPath,spa, "server.js");
+                var jsonFile = Path.Combine(ConfigHelper.WebRootPath,spa, "server.js");
                 if (!File.Exists(jsonFile))
                 {
                     await context.Response.WriteAsync($"notfound");
@@ -483,7 +477,7 @@ namespace spa.Controller
                         return;
                     }
                     
-                    var jsonFile = Path.Combine(_hostingEnvironment.WebRootPath, "appsettings.json");
+                    var jsonFile = Path.Combine(ConfigHelper.WebRootPath, "appsettings.json");
                     File.WriteAllText(jsonFile,json);
                     
                     await context.Response.WriteAsync($"success");
@@ -505,7 +499,7 @@ namespace spa.Controller
                         return;
                     }
 
-                    var jsonFile = Path.Combine(_hostingEnvironment.WebRootPath,spa, "server.js");
+                    var jsonFile = Path.Combine(ConfigHelper.WebRootPath,spa, "server.js");
                     File.WriteAllText(jsonFile,json);
                     
                     await context.Response.WriteAsync($"success");

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
+using spa.JavaScriptViewEngine.Utils;
 
 namespace spa.Filter
 {
@@ -26,11 +27,9 @@ namespace spa.Filter
   
     public class BasicAuthFilter : IActionFilter 
     {
-        private readonly IConfiguration _configuration;
 
-        public BasicAuthFilter(IConfiguration configuration)
+        public BasicAuthFilter()
         {
-            _configuration = configuration;
         }
         
         public void OnActionExecuting(ActionExecutingContext context)
@@ -50,11 +49,9 @@ namespace spa.Filter
             var username = credentials[0];
             var password = credentials[1];
 
-            var name = Environment.GetEnvironmentVariable("BasicAuth_Name");
-            var pwd = Environment.GetEnvironmentVariable("BasicAuth_Pwd");
-            var localUserName = string.IsNullOrEmpty(name) ? _configuration["BasicAuth:Name"] : name;
-            var localPassword = string.IsNullOrEmpty(pwd) ? _configuration["BasicAuth:Password"] : pwd;
-
+           
+            var localUserName = ConfigHelper.GetConfig("BasicAuth:Name");
+            var localPassword = ConfigHelper.GetConfig("BasicAuth:Pwd");
             if (!string.IsNullOrEmpty(localUserName) && !string.IsNullOrEmpty(localPassword) && (!username.Equals(localUserName) || !password.Equals(localPassword)))
             {
                 context.HttpContext.Response.Headers.Add("WWW-Authenticate", (StringValues) "BASIC realm=\"api\"");

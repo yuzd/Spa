@@ -8,7 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Dapper;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 using Newtonsoft.Json;
 
 namespace spa.Models

@@ -2,22 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using spa.Filter;
+using spa.JavaScriptViewEngine.Utils;
 using spa.Models;
 
 namespace spa.Controller
 {
     public class HomeController : Microsoft.AspNetCore.Mvc.Controller
     {
-        private readonly IHostingEnvironment _hostingEnvironment;
-        private readonly string _backupFolder;
-        public HomeController(IHostingEnvironment _hostingEnvironment)
-        {
-            this._hostingEnvironment = _hostingEnvironment;
-            _backupFolder = Path.Combine(_hostingEnvironment.ContentRootPath, "backup");
-        }
         
         public IActionResult Index()
         {
@@ -27,7 +20,12 @@ namespace spa.Controller
         [BasciAuth]
         public IActionResult Admin()
         {
-            var folderList = Directory.GetDirectories(_hostingEnvironment.WebRootPath);
+            if (string.IsNullOrEmpty(ConfigHelper.WebRootPath))
+            {
+                ViewBag.List = new List<SpaModel>();
+                return View();
+            }
+            var folderList = Directory.GetDirectories(ConfigHelper.WebRootPath);
             var list = (from d in folderList
                     let f = new DirectoryInfo(d)
                     select new SpaModel
@@ -52,8 +50,8 @@ namespace spa.Controller
         private string GetFirstBackup(string path)
         {
             var resultList = string.Empty;
-            if(!Directory.Exists(_backupFolder)) return resultList;
-            var backupFolder = Path.Combine(_backupFolder, path);
+            if(!Directory.Exists(ConfigHelper.BackupPath)) return resultList;
+            var backupFolder = Path.Combine(ConfigHelper.BackupPath, path);
             if (!Directory.Exists(backupFolder)) return resultList;
             var backupFiles = Directory.GetFiles(backupFolder)
                 .Select(Path.GetFileNameWithoutExtension)
