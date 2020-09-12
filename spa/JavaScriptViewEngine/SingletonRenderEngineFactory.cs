@@ -152,7 +152,7 @@ namespace JavaScriptViewEngine
                     }
                     catch (Exception e)
                     {
-                        logger.Error(e.ToString());
+                        logger.Error("excute server.js fail:"+e.Message);
                     }
                 }
 

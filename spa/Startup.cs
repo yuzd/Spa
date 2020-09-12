@@ -82,12 +82,27 @@ namespace spa
             #region 对于敏感的文件不让访问
 
             //对于敏感的文件不让访问
-            var fileExtentionNotAllowed = ConfigHelper.GetConfig("NotAllowedFileExtentions", "appsettings.json;.map").Split(';', StringSplitOptions.RemoveEmptyEntries);
+            var fileExtentionNotAllowed = ConfigHelper.GetConfig("NotAllowedFileExtentions", "appsettings.json;.map").Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+            fileExtentionNotAllowed.Add("server.js");//服务端js代码 里面会有敏感信息
             app.UseWhen(
                 c =>
                 {
-                    var currentRequestPath = c.Request.Path.Value.ToLower();
-                    return fileExtentionNotAllowed.Any(nowAllowedFile => currentRequestPath.EndsWith(nowAllowedFile.ToLower()));
+                    var currentRequestPath = ConfigHelper.GetFileNameByRequestPath(c.Request.Path.Value.ToLower());
+                    foreach (var notallowed in fileExtentionNotAllowed)
+                    {
+                        if (notallowed.StartsWith(".") && currentRequestPath.EndsWith(notallowed.ToLower()))
+                        {
+                            //匹配文件后缀
+                            return true;
+                        }
+
+                        if (currentRequestPath.Equals(notallowed.ToLower()))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
                 },
                 _ => _.Run((context => context.Response.WriteAsync("503"))));
 
