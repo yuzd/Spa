@@ -4,16 +4,16 @@ using System.Linq;
 using System.Text;
 using NLog;
 
-namespace spa.Models
+namespace spa.Plugins
 {
 
     /// <summary>
     /// js运行时日志
     /// </summary>
-    public class JsLogger
+    public class LoggerPlugin
     {
         private static readonly Logger logger;
-        static JsLogger()
+        static LoggerPlugin()
         {
             logger = LogManager.GetCurrentClassLogger();
         }

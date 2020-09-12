@@ -11,15 +11,15 @@ using System.Threading.Tasks;
 using Dapper;
 using HttpClientFactory.Impl;
 
-namespace spa.Models
+namespace spa.Plugins
 {
-    public class HttpContext
+    public class HttpPlugin
     {
         private readonly Dictionary<string, string> _paramDic;
         private readonly Dictionary<string, string> _headerDic;
 
 
-        public HttpContext(object param)
+        public HttpPlugin(object param)
         {
             var dd = getPrams(param);
             _paramDic = dd.Item1;

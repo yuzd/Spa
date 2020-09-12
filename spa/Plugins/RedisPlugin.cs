@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 using CSRedis;
 
-namespace spa.Models
+namespace spa.Plugins
 {
-    public class RedisClient
+    public class RedisPlugin
     {
         private static readonly Dictionary<string, CSRedis.CSRedisClient> client = new Dictionary<string, CSRedisClient>();
 
         private readonly CSRedis.CSRedisClient _redis;
 
-        public RedisClient(string name)
+        public RedisPlugin(string name)
         {
             if (!client.TryGetValue(name, out var redis))
             {

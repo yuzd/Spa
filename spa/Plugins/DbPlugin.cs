@@ -11,16 +11,16 @@ using Dapper;
 using MySqlConnector;
 using Newtonsoft.Json;
 
-namespace spa.Models
+namespace spa.Plugins
 {
 
-    public class DbContext
+    public class DbPlugin
     {
         private readonly string _type;
         private readonly string _name;
         private readonly bool isSqlserver;
 
-        public DbContext(string type, string name)
+        public DbPlugin(string type, string name)
         {
             _type = type;
             isSqlserver = !type.Equals("mysql");
@@ -168,12 +168,12 @@ namespace spa.Models
 
     public class JsDbContext
     {
-        public DbContext DB;
+        public DbPlugin DB;
 
 
         public JsDbContext(string type, string name)
         {
-            DB = new DbContext(type, name);
+            DB = new DbPlugin(type, name);
         }
 
 

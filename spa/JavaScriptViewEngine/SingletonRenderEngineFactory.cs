@@ -16,6 +16,7 @@ using Newtonsoft.Json.Linq;
 using NLog;
 using RazorLight;
 using spa.Models;
+using spa.Plugins;
 
 namespace JavaScriptViewEngine
 {
@@ -139,7 +140,7 @@ namespace JavaScriptViewEngine
                 {
                     var exports = engine
                         .CommonJS()
-                        .RegisterInternalModule("server", typeof(Server))
+                        .RegisterInternalModule("server", typeof(PluginFactory))
                         .RunMain(jsFileContent.FilePath);
 
                     try

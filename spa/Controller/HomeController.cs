@@ -17,6 +17,7 @@ namespace spa.Controller
             return View("js-{auto}");
         }
         
+        [Route("admin")]
         [BasciAuth]
         public IActionResult Admin()
         {

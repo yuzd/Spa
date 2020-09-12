@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Threading.Tasks;
+using spa.Models;
 
-namespace spa.Models
+namespace spa.Plugins
 {
     /// <summary>
     /// js调用入口
     /// </summary>
-    public class Server
+    public class PluginFactory
     {
 
         /// <summary>
@@ -22,7 +23,7 @@ namespace spa.Models
         {
             if (string.IsNullOrEmpty(type))
             {
-                throw new  ArgumentException("server.create(type, properties)->type invaild");
+                throw new ArgumentException("server.create(type, properties)->type invaild");
             }
 
             type = type.ToLower();
@@ -82,7 +83,7 @@ namespace spa.Models
         /// <returns></returns>
         private static object CreateHttp(object param)
         {
-            return new HttpContext(param);
+            return new HttpPlugin(param);
         }
 
         /// <summary>
@@ -108,7 +109,7 @@ namespace spa.Models
             {
                 throw new ArgumentException("server.create(type, properties)->properties.name invaild");
             }
-            return new RedisClient(name);
+            return new RedisPlugin(name);
         }
 
 
@@ -118,7 +119,7 @@ namespace spa.Models
         /// <returns></returns>
         private static object CreateLogger(object param)
         {
-            return new JsLogger();
+            return new LoggerPlugin();
         }
 
         /// <summary>

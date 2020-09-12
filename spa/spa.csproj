@@ -9,6 +9,24 @@
     <PreserveCompilationContext>true</PreserveCompilationContext>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Asset\Admin\favicon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Asset\Admin\admin.css" />
+    <EmbeddedResource Include="Asset\Admin\bootstrap.min.css" />
+    <EmbeddedResource Include="Asset\Admin\bootstrap.min.js" />
+    <EmbeddedResource Include="Asset\Admin\codemirror.css" />
+    <EmbeddedResource Include="Asset\Admin\codemirror.js" />
+    <EmbeddedResource Include="Asset\Admin\fileinput.min.css" />
+    <EmbeddedResource Include="Asset\Admin\fileinput.min.js" />
+    <EmbeddedResource Include="Asset\Admin\jquery.min.js" />
+    <EmbeddedResource Include="Asset\Admin\jsoneditor.min.css" />
+    <EmbeddedResource Include="Asset\Admin\jsoneditor.min.js" />
+    <EmbeddedResource Include="Asset\Admin\sweetalert.min.js" />
+  </ItemGroup>
+
     <ItemGroup>
         <PackageReference Include="CSRedisCore" Version="3.6.5" />
         <PackageReference Include="Dapper" Version="2.0.35" />
@@ -29,6 +47,11 @@
         <Content Update="nlog.config">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
+    </ItemGroup>
+   
+    
+    <ItemGroup>
+      <Folder Include="wwwroot\" />
     </ItemGroup>
    
   
