@@ -1,4 +1,4 @@
-## SPA单页面容器功能一览：
+## 前端容器功能一览：
 - 前端应用开发完后打包后自助上传部署
 - 配合服务端脚本实现服务端渲染SSR功能
 - 可以快速回滚到上一个版本
@@ -20,7 +20,7 @@
 ![image](https://images4.c-ctrip.com/target/zb0g1d000001eeg3h59E0.png)
 
 
-### 新建单页面应用
+### 新建前端应用
 ![image](https://images4.c-ctrip.com/target/zb0j1d000001ed9vpCE40.png)
 
 ![image](https://images4.c-ctrip.com/target/zb091d000001eg5teF67C.png)
@@ -31,7 +31,7 @@
 ### 全局配置
 ![image](https://images4.c-ctrip.com/target/zb0a1d000001ef32eC2D8.png)
 
-### 服务端SSR脚本编辑器
+### 服务端JS脚本编辑器,有智能提示代码
 ![image](https://images4.c-ctrip.com/target/zb0h1d000001eleyd2B05.png)
 
 ### 日志查看
