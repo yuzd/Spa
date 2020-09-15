@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using NLog;
 using spa.JavaScriptViewEngine.Utils;
+using spa.Models;
 
 namespace spa.Controller
 {
@@ -170,8 +171,21 @@ namespace spa.Controller
                 await context.Response.WriteAsync("invaild file");
                 return;
             }
-
             var file = files.First();
+            if (files.Count > 1)
+            {
+                //文件夹上传
+                //检查根目录是否含有index.html文件
+                var folderFile = new FormFolder(path, files.ToArray());
+                if (!folderFile.WithIndexHtmlFile)
+                {
+                    await context.Response.WriteAsync("not found index.html file");
+                    return;
+                }
+
+                file = folderFile;
+            }
+
             if (file.Length < 1 || (!string.IsNullOrEmpty(file.Name) && !file.Name.ToLower().EndsWith(".zip")))
             {
                 await context.Response.WriteAsync("invaild file");
@@ -199,7 +213,11 @@ namespace spa.Controller
             };
             
             //备份
-            Action backupAction = () => { BackupUpload(path, DateTime.Now.ToString("yyyyMMddHHmmss") + "_" + file.Length,  Path.Combine(filePath, "new.zip")); };
+            Action backupAction = () =>
+            {
+                BackupUpload(path, DateTime.Now.ToString("yyyyMMddHHmmss") + "_" + file.Length,  Path.Combine(filePath, "new.zip"));
+                (file as FormFolder)?.Dispose();//文件夹上传
+            };
 
             await Deploy(context, filePath, saveFile, backupAction);
         }
@@ -277,8 +295,23 @@ namespace spa.Controller
             }
             finally
             {
-                File.Delete(guidFile);
-                Directory.Delete(destFolder, true);
+                try
+                {
+                    File.Delete(guidFile);
+                }
+                catch (Exception)
+                {
+                    //ignore
+                }
+                try
+                {
+                    Directory.Delete(destFolder, true);
+                }
+                catch (Exception)
+                {
+                    //ignore
+                }
+              
             }
         }
 

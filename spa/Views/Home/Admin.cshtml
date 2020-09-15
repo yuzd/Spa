@@ -11,7 +11,7 @@
     <link href="spa/Asset/Admin/jsoneditor.min.css" rel="stylesheet">
     <link href="spa/Asset/Admin/codemirror.css" rel="stylesheet">
     <link href="spa/Asset/Admin/admin.css" rel="stylesheet">
-    
+
     <script src="spa/Asset/Admin/jquery.min.js"></script>
     <script src="spa/Asset/Admin/bootstrap.min.js"></script>
     <script src="spa/Asset/Admin/sweetalert.min.js"></script>
@@ -36,13 +36,13 @@
                 </li>
                 <li>
                     <a href="/LogDashboard" target="_blank">日志</a>
-                </li>                
+                </li>
             </ul>
         </div>
     </div>
 </nav>
 
-<div class="loading" data-asd="12" style="display: none" >
+<div class="loading" data-asd="12" style="display: none">
     <div class="loading-spinner">
         <div class="spinner-container container1">
             <div class="circle1"></div>
@@ -91,15 +91,15 @@
                         </button>
                         <ul class="dropdown-menu" role="menu">
                             <li>
-                                <a href="#" onclick="reupload('@data.Title')" >重新上传(Upload)</a>
+                                <a href="#" onclick="reupload('@data.Title')">重新上传(Upload)</a>
                             </li>
                             <li class="divider"></li>
                             <li>
-                                <a href="#" onclick="rollback('@data.RollbackPath')" >回滚(Rollback)</a>
+                                <a href="#" onclick="rollback('@data.RollbackPath')">回滚(Rollback)</a>
                             </li>
                             <li class="divider"></li>
                             <li>
-                                <a href="#" onclick="serverJs('@data.Title')" >服务端渲染(SSR)</a>
+                                <a href="#" onclick="serverJs('@data.Title')">服务端渲染(SSR)</a>
                             </li>
                         </ul>
                     </div>
@@ -107,11 +107,11 @@
             </div>
         </div>
     }
-   
+
 </div>
 
 <div class="modal inmodal" id="jsonModel" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" >
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-body" style="padding:0">
                 <div class="form-group">
@@ -127,34 +127,51 @@
 </div>
 
 <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-	<div class="modal-dialog">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h4 class="modal-title" id="myModalLabel">
-					新建单页面应用
-				</h4>
-			</div>
-			<div class="modal-body">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="myModalLabel">
+                    新建单页面应用
+                </h4>
+            </div>
+            <div class="modal-body">
                 <div class="form-group">
                     <label class="control-label">单页面名称：</label>
                     <input id="newAction" class="form-control" type="text" placeholder="全是英文小写，不能有特殊符号">
                 </div>
-                
-                 <div class="form-group">
-                    <label class="control-label">选择Zip(必须包含index.html)：</label>
-                    <input id="upload1"  type="file" class="file" data-show-upload="false" />
+                <ul class="nav nav-tabs">
+                    <li role="presentation" class="active">
+                        <a href="#uploadZipMenu" data-toggle="tab">选择Zip</a>
+                    </li>
+                    <li role="presentation">
+                        <a href="#uploadFolderMenu" data-toggle="tab">选择文件夹</a>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div id="uploadZipMenu" class="container tab-pane active">
+                        <div class="form-group" style="max-width: 500px">
+                            <label class="control-label">选择Zip(必须包含index.html)：</label>
+                            <input id="upload1" type="file" class="file" data-show-upload="false"/>
+                        </div>
+                    </div>
+                    <div id="uploadFolderMenu" class="container tab-pane ">
+                        <div class="form-group" style="max-width: 500px">
+                            <label class="control-label">选择文件夹(该文件夹下必须包含index.html)：</label>
+                            <input id="uploadFolder" type="file" class="file" data-show-upload="false" webkitdirectory/>
+                        </div>
+                    </div>
                 </div>
             </div>
-			<div class="modal-footer">
-				<button type="button" class="btn btn-default" data-dismiss="modal" onclick="closeSpa()">
-					关闭
-				</button>
-				<button type="button" class="btn btn-primary" onclick="newSpa()">
-					创建并部署
-				</button>
-			</div>
-		</div>
-	</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal" onclick="closeSpa()">
+                    关闭
+                </button>
+                <button type="button" class="btn btn-primary" onclick="newSpa()">
+                    创建并部署
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="reModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2" aria-hidden="true">
@@ -170,10 +187,27 @@
                     <label class="control-label">单页面名称：</label>
                     <input id="newAction2" class="form-control" type="text" placeholder="全是英文小写，不能有特殊符号" readonly="readonly">
                 </div>
-                
-                 <div class="form-group">
-                    <label class="control-label">选择Zip(必须包含index.html)：</label>
-                    <input id="upload2"  type="file" class="file" data-show-upload="false" />
+                 <ul class="nav nav-tabs">
+                    <li role="presentation" class="active">
+                        <a href="#uploadZipMenu2" data-toggle="tab">选择Zip</a>
+                    </li>
+                    <li role="presentation">
+                        <a href="#uploadFolderMenu2" data-toggle="tab">选择文件夹</a>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div id="uploadZipMenu2" class="container tab-pane active">
+                        <div class="form-group" style="max-width: 500px">
+                            <label class="control-label">选择Zip(必须包含index.html)：</label>
+                            <input id="upload2" type="file" class="file" data-show-upload="false"/>
+                        </div>
+                    </div>
+                    <div id="uploadFolderMenu2" class="container tab-pane ">
+                        <div class="form-group" style="max-width: 500px">
+                            <label class="control-label">选择文件夹(该文件夹下必须包含index.html)：</label>
+                            <input id="uploadFolder2" type="file" class="file" data-show-upload="false" webkitdirectory/>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -206,7 +240,7 @@
         </div>
     </div>
 </div>
-    
+
 
 <script>
 var _setTimer = undefined;
@@ -370,6 +404,16 @@ var _setTimer = undefined;
             }
         });
 
+        document.getElementById("uploadFolder").addEventListener("change", function(event) {
+            let output = document.getElementById("listing");
+            let files = event.target.files;
+             $('#uploadFolderMenu .file-caption-name').html(files.length+'个文件');
+        }, false);
+        document.getElementById("uploadFolder2").addEventListener("change", function(event) {
+             let output = document.getElementById("listing");
+             let files = event.target.files;
+              $('#uploadFolderMenu2 .file-caption-name').html(files.length+'个文件');
+         }, false);       
     });
 
     //关闭蒙层
@@ -399,18 +443,46 @@ var _setTimer = undefined;
             return;
         }
         var data = new FormData();
-        var files = $("#upload1").get(0).files;
-        if (!files || files.length < 1) {
-            swal({
-                title: "",
-                text: "请选择文件！",
-                type: "error"
-            });
-            return;
+        if ($('#uploadZipMenu').hasClass('active')){
+             //查看是哪个tab是active的
+             var files = $("#upload1").get(0).files;
+             if (!files || files.length < 1) {
+                 swal({
+                     title: "",
+                     text: "请选择文件！",
+                     type: "error"
+                 });
+                 return;
+             }
+             var file = files[0];
+             data.append(file.name, file);
         }
-        var file = files[0];
-        data.append(file.name, file);
-        spaJax('/' + app + '.upload', 'post', 'html', data, false, true).done(end);
+        else{
+            //webkitRelativePath
+             var files = $("#uploadFolder")[0].files;
+             if (!files || files.length < 1) {
+                  swal({
+                      title: "",
+                      text: "请选择有文件的文件夹！",
+                      type: "error"
+                  });
+                  return;
+              }    
+             //查看首目录下是否含有index.html文件
+             for(let i = 0; i < files.length; i++) {
+               var file = files[i];
+               if (!file.webkitRelativePath){
+                  swal({
+                       title: "",
+                       text: "文件夹文件解析错误,webkitRelativePath为null",
+                       type: "error"
+                   });
+                   return;  
+               }
+               data.append(file.webkitRelativePath, file);
+             }
+        }
+        spaJax('/' + app + '.upload', 'post', 'html', data, false, true).done(end);    
     }
 
     //重新并提交
@@ -425,17 +497,45 @@ var _setTimer = undefined;
             return;
         }
         var data = new FormData();
-        var files = $("#upload2").get(0).files;
-        if (!files || files.length < 1) {
-            swal({
-                title: "",
-                text: "请选择文件！",
-                type: "error"
-            });
-            return;
+        if ($('#uploadZipMenu2').hasClass('active')){
+            var files = $("#upload2").get(0).files;
+            if (!files || files.length < 1) {
+                swal({
+                    title: "",
+                    text: "请选择文件！",
+                    type: "error"
+                });
+                return;
+            }
+            var file = files[0];
+            data.append(file.name, file);
         }
-        var file = files[0];
-        data.append(file.name, file);
+        else{
+            //webkitRelativePath
+             var files = $("#uploadFolder2")[0].files;
+             if (!files || files.length < 1) {
+                  swal({
+                      title: "",
+                      text: "请选择有文件的文件夹！",
+                      type: "error"
+                  });
+                  return;
+              }    
+             //查看首目录下是否含有index.html文件
+             for(let i = 0; i < files.length; i++) {
+               var file = files[i];
+               if (!file.webkitRelativePath){
+                  swal({
+                       title: "",
+                       text: "文件夹文件解析错误,webkitRelativePath为null",
+                       type: "error"
+                   });
+                   return;  
+               }
+               data.append(file.webkitRelativePath, file);
+             }            
+        }
+
         spaJax('/' + app + '.reupload', 'post', 'html', data, false, true).done(end);
     }
 
