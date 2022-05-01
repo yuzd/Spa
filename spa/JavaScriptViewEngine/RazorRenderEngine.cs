@@ -175,8 +175,8 @@ namespace spa.JavaScriptViewEngine
                         _engine.Handler.Cache.Remove(oldCache);
                         cacheList[entryPointName] = cacheKey;
                     }
-                    context.Response.Cookies.Append(":spa:project", entryPointName);
                     re = result;
+                    context.Response.Cookies.Append("spa_project", entryPointName);
                 }
                 catch (Exception e)
                 {
