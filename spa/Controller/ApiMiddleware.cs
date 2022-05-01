@@ -11,6 +11,7 @@ using JavaScriptViewEngine.Utils;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NLog;
 using spa.JavaScriptViewEngine.Utils;
 using spa.Models;
@@ -32,7 +33,7 @@ namespace spa.Controller
             logger = LogManager.GetCurrentClassLogger();
         }
 
-        public ApiMiddleware( RequestDelegate next)
+        public ApiMiddleware(RequestDelegate next)
         {
             _next = next;
 
@@ -41,8 +42,8 @@ namespace spa.Controller
             {
                 _backUpLimit = backUpLimit;
             }
-            
-            _backupFolder =ConfigHelper.BackupPath;
+
+            _backupFolder = ConfigHelper.BackupPath;
             if (!Directory.Exists(_backupFolder)) Directory.CreateDirectory(_backupFolder);
         }
 
@@ -106,8 +107,8 @@ namespace spa.Controller
             }
         }
 
-        
-        
+
+
         /// <summary>
         /// 验证auth
         /// </summary>
@@ -123,7 +124,7 @@ namespace spa.Controller
 
             var authHeader = AuthenticationHeaderValue.Parse(context.Request.Headers[nameof(Authorization)]);
             var credentialBytes = Convert.FromBase64String(authHeader.Parameter);
-            var credentials = Encoding.UTF8.GetString(credentialBytes).Split(new[] {':'}, 2);
+            var credentials = Encoding.UTF8.GetString(credentialBytes).Split(new[] { ':' }, 2);
             var username = credentials[0];
             var password = credentials[1];
             var localUserName = ConfigHelper.GetConfig("BasicAuth:Name");
@@ -199,23 +200,23 @@ namespace spa.Controller
                 Directory.CreateDirectory(filePath);
             }
 
-           
+
             //保存文件流到文件
-            Action<string> saveFile =  (temp) =>
-            {
-                using (var inputStream = new FileStream(temp, FileMode.Create))
-                {
-                    file.CopyToAsync(inputStream).ConfigureAwait(false).GetAwaiter().GetResult();
-                    byte[] array = new byte[inputStream.Length];
-                    inputStream.Seek(0, SeekOrigin.Begin);
-                    inputStream.Read(array, 0, array.Length);
-                }
-            };
-            
+            Action<string> saveFile = (temp) =>
+           {
+               using (var inputStream = new FileStream(temp, FileMode.Create))
+               {
+                   file.CopyToAsync(inputStream).ConfigureAwait(false).GetAwaiter().GetResult();
+                   byte[] array = new byte[inputStream.Length];
+                   inputStream.Seek(0, SeekOrigin.Begin);
+                   inputStream.Read(array, 0, array.Length);
+               }
+           };
+
             //备份
             Action backupAction = () =>
             {
-                BackupUpload(path, DateTime.Now.ToString("yyyyMMddHHmmss") + "_" + file.Length,  Path.Combine(filePath, "new.zip"));
+                BackupUpload(path, DateTime.Now.ToString("yyyyMMddHHmmss") + "_" + file.Length, Path.Combine(filePath, "new.zip"));
                 (file as FormFolder)?.Dispose();//文件夹上传
             };
 
@@ -311,7 +312,7 @@ namespace spa.Controller
                 {
                     //ignore
                 }
-              
+
             }
         }
 
@@ -332,7 +333,7 @@ namespace spa.Controller
             }
 
             var action = arr[0];
-            var fileName = Path.Combine(_backupFolder,action,arr[1] + ".zip");
+            var fileName = Path.Combine(_backupFolder, action, arr[1] + ".zip");
             if (!File.Exists(fileName))
             {
                 await context.Response.WriteAsync($"{fileName} not exist");
@@ -348,12 +349,12 @@ namespace spa.Controller
 
             Action<string> saveAction = temp =>
             {
-                File.Copy(fileName,temp);
+                File.Copy(fileName, temp);
             };
 
-            await Deploy(context, destFolder, saveAction, ()=>{});
+            await Deploy(context, destFolder, saveAction, () => { });
         }
-        
+
         /// <summary>
         /// 备份
         /// </summary>
@@ -383,7 +384,7 @@ namespace spa.Controller
 
             //是否已经超过最大备份保存数
             if (backupFiles.Count <= _backUpLimit) return;
-            
+
             //保留最新的 删除旧的
             foreach (var backupFile in backupFiles.Skip(_backUpLimit))
             {
@@ -418,7 +419,7 @@ namespace spa.Controller
                 await context.Response.WriteAsync("please wait 5 sencods and retry");
                 return;
             }
-            
+
             Directory.Delete(filePath, true);
             //也得删除备份的文件夹
             var backupFolder = Path.Combine(_backupFolder, path);
@@ -440,7 +441,7 @@ namespace spa.Controller
                 if (!Directory.Exists(backupFolder)) return resultList;
                 var backupFiles = Directory.GetFiles(backupFolder)
                     .Select(Path.GetFileNameWithoutExtension)
-                    .Select(r => new {Path = Path.Combine(backupFolder, r + ".zip"), Name = r + ".zip", Time = DateTime.ParseExact(r.Split('_')[0], "yyyyMMddHHmmss", null), Size = long.Parse(r.Split('_')[1])})
+                    .Select(r => new { Path = Path.Combine(backupFolder, r + ".zip"), Name = r + ".zip", Time = DateTime.ParseExact(r.Split('_')[0], "yyyyMMddHHmmss", null), Size = long.Parse(r.Split('_')[1]) })
                     .OrderByDescending(r => r.Time)
                     .Select(Newtonsoft.Json.JsonConvert.SerializeObject)
                     .ToList();
@@ -450,13 +451,13 @@ namespace spa.Controller
 
             var folderList = Directory.GetDirectories(ConfigHelper.WebRootPath);
             var list = (from d in folderList
-                    let f = new DirectoryInfo(d)
-                    select new
-                    {
-                        Name = f.Name,
-                        Time = f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                        BackupList = GetBackupList(f.Name)
-                    }).Where(r => !r.Name.Equals("admin"))
+                        let f = new DirectoryInfo(d)
+                        select new
+                        {
+                            Name = f.Name,
+                            Time = f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                            BackupList = GetBackupList(f.Name)
+                        }).Where(r => !r.Name.Equals("admin"))
                 .ToList();
             context.Response.ContentType = "application/json";
             return context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(list));
@@ -464,82 +465,96 @@ namespace spa.Controller
 
         private async Task api(string path, HttpContext context)
         {
-            if (path.Equals("getglobaljson"))
+            if (path.Equals("getconfigjson"))
             {
-                var jsonFile = Path.Combine(ConfigHelper.WebRootPath, "appsettings.json");
+                string currentConfigType = "";
+                using (StreamReader reader = new StreamReader(context.Request.Body))
+                {
+                    currentConfigType = reader.ReadToEnd();
+                }
+
+                string jsonFile = "";
+                if (currentConfigType == "global")
+                {
+                    jsonFile = Path.Combine(ConfigHelper.WebRootPath, "appsettings.json");
+                }
+                else
+                {
+                    jsonFile = Path.Combine(ConfigHelper.WebRootPath, currentConfigType, "appsettings.json");
+                }
                 if (!File.Exists(jsonFile))
                 {
-                    await context.Response.WriteAsync($"err:{jsonFile} not found!");
+                    File.WriteAllText(jsonFile,"{}");
                     return;
                 }
-                
                 await context.Response.WriteAsync($"{await File.ReadAllTextAsync(jsonFile)}");
                 return;
             }
-            
+
             if (path.EndsWith("serverjsget"))
             {
                 var spa = path.Split('-')[0];
-                var jsonFile = Path.Combine(ConfigHelper.WebRootPath,spa, "server.js");
+                var jsonFile = Path.Combine(ConfigHelper.WebRootPath, spa, "server.js");
                 if (!File.Exists(jsonFile))
                 {
                     await context.Response.WriteAsync($"notfound");
                     return;
                 }
-                
+
                 await context.Response.WriteAsync($"{await File.ReadAllTextAsync(jsonFile)}");
                 return;
             }
-            
 
-            if (path.Equals("saveglobaljson"))
+
+            if (path.Equals("saveconfigjson"))
             {
                 using (StreamReader reader = new StreamReader(context.Request.Body))
                 {
-                    var json =  reader.ReadToEnd();
+                    var json = reader.ReadToEnd();
                     if (string.IsNullOrEmpty(json))
                     {
                         await context.Response.WriteAsync($"err: json is empty!");
                         return;
                     }
 
-                    var jsonString = ConvertJsonString(json);
+                    JToken jsonObj = JToken.Parse(json);
+                    var currentPathType = jsonObj["type"]?.ToString()??"global";
+                    var jsonString = ConvertJsonString(jsonObj["json"].ToString());
                     if (string.IsNullOrEmpty(jsonString))
                     {
                         await context.Response.WriteAsync($"err: invaild json !");
                         return;
                     }
-                    
-                    var jsonFile = Path.Combine(ConfigHelper.WebRootPath, "appsettings.json");
-                    File.WriteAllText(jsonFile,json);
-                    
+
+                    var jsonFile = currentPathType == "global" ? Path.Combine(ConfigHelper.WebRootPath, "appsettings.json") : Path.Combine(ConfigHelper.WebRootPath, currentPathType, "appsettings.json");
+                    await File.WriteAllTextAsync(jsonFile, jsonString);
                     await context.Response.WriteAsync($"success");
                     return;
                 }
-               
+
             }
 
             if (path.EndsWith("serverjssave"))
             {
                 var spa = path.Split('-')[0];
-                
+
                 using (StreamReader reader = new StreamReader(context.Request.Body))
                 {
-                    var json =  reader.ReadToEnd();
+                    var json = reader.ReadToEnd();
                     if (string.IsNullOrEmpty(json))
                     {
                         await context.Response.WriteAsync($"err: js is empty!");
                         return;
                     }
 
-                    var jsonFile = Path.Combine(ConfigHelper.WebRootPath,spa, "server.js");
-                    File.WriteAllText(jsonFile,json);
-                    
+                    var jsonFile = Path.Combine(ConfigHelper.WebRootPath, spa, "server.js");
+                    File.WriteAllText(jsonFile, json);
+
                     await context.Response.WriteAsync($"success");
                     return;
                 }
             }
-            
+
         }
 
         /// <summary>
@@ -549,7 +564,7 @@ namespace spa.Controller
         /// <returns></returns>
         private bool IsValidPath(string path)
         {
-            return Path.GetInvalidFileNameChars().Count(x => path.Contains((char) x)) < 1 && !path.ToLower().Equals("admin");
+            return Path.GetInvalidFileNameChars().Count(x => path.Contains((char)x)) < 1 && !path.ToLower().Equals("admin");
         }
 
         /// <summary>
@@ -557,7 +572,7 @@ namespace spa.Controller
         /// </summary>
         /// <param name="str"></param>
         /// <returns></returns>
-        private string ConvertJsonString(string str)
+        private string ConvertJsonString(string str,object obj1 = null)
         {
             try
             {
@@ -565,7 +580,7 @@ namespace spa.Controller
                 JsonSerializer serializer = new JsonSerializer();
                 TextReader tr = new StringReader(str);
                 JsonTextReader jtr = new JsonTextReader(tr);
-                object obj = serializer.Deserialize(jtr);
+                object obj = obj1?? serializer.Deserialize(jtr);
                 if (obj != null)
                 {
                     StringWriter textWriter = new StringWriter();

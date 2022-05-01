@@ -97,7 +97,11 @@
                             <li>
                                 <a href="#" onclick="rollback('@data.RollbackPath')">回滚(Rollback)</a>
                             </li>
-                            <li class="divider"></li>
+	                        <li class="divider"></li>
+	                        <li>
+		                        <a href="#" onclick="config('@data.Title')">配置(AppSettings)</a>
+	                        </li>
+	                        <li class="divider"></li>
                             <li>
                                 <a href="#" onclick="serverJs('@data.Title')">服务端渲染(SSR)</a>
                             </li>
@@ -640,7 +644,7 @@ var _setTimer = undefined;
 
     //全局配置json编辑器
     function globalJson() {
-        spaJax('/getglobaljson.api', 'get', 'html').done(function(response) {
+        spaJax('/getconfigjson.api', 'post', 'html',"global").done(function(response) {
             if (response.indexOf('err:') > -1) {
                 swal({
                     title: "",
@@ -649,14 +653,15 @@ var _setTimer = undefined;
                 });
                 return;
             }
-            showJsonModel(response);
+            showJsonModel(response,"global");
         });
     }
 
     //展示json
-    function showJsonModel(json) {
+    function showJsonModel(json,type) {
         window.jsonViewEditor.setText(json);
         window.jsonViewEditor.format();
+        window.jsonViewEditor.type = type;
         $('#jsonModel').modal({
             backdrop: 'static',
             keyboard: false
@@ -674,7 +679,11 @@ var _setTimer = undefined;
             });
             return;
         }
-        spaJax('/saveglobaljson.api', 'post', 'html', json).done(function(response) {
+        var data = {
+            "json" : json,
+            "type": window.jsonViewEditor.type||"global"
+        };
+        spaJax('/saveconfigjson.api', 'post', 'html', JSON.stringify(data)).done(function(response) {
              if (response.substr(0,4) == 'err:') {
                 swal({
                     title: "",
@@ -716,6 +725,20 @@ var _setTimer = undefined;
          
   
     }
+
+	function config(spa) {
+		spaJax('/getconfigjson.api', 'post', 'html',spa).done(function(response) {
+			if (response.indexOf('err:') > -1) {
+				swal({
+					title: "",
+					text: response,
+					type: "error"
+				});
+				return;
+			}
+			showJsonModel(response,spa);
+		});
+	}
 
     //保存脚本
     function saveJs() {
