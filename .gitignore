@@ -8,3 +8,4 @@ spa/spa.csproj.user
 *.pubxml
 *.user
 spa/AntDeploy.json
+_ReSharper.Caches/
