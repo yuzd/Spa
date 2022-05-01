@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.StaticFiles;
 using Newtonsoft.Json.Linq;
 using NLog;
 using RazorLight;
@@ -26,6 +27,7 @@ namespace spa.JavaScriptViewEngine
         private readonly IWebHostEnvironment _hostingEnvironment;
         private readonly RazorLightEngine _engine;
         private static readonly Logger logger;
+        private readonly FileExtensionContentTypeProvider _contentTypeProvider;
 
         /// <summary>
         /// jint
@@ -61,11 +63,14 @@ namespace spa.JavaScriptViewEngine
         static RazorRenderEngine()
         {
             logger = LogManager.GetCurrentClassLogger();
+            
         }
 
         public RazorRenderEngine(IWebHostEnvironment hostingEnvironment)
         {
             _hostingEnvironment = hostingEnvironment;
+            _contentTypeProvider = new FileExtensionContentTypeProvider();
+
             _engine = new RazorLightEngineBuilder()
                 .DisableEncoding()
                 .UseEmbeddedResourcesProject(typeof(RazorRenderEngine))
@@ -94,6 +99,12 @@ namespace spa.JavaScriptViewEngine
                 entryPointName = entryPointName.ToLowerInvariant();
                 var indexHtml = new FileModel(_hostingEnvironment, entryPointName, "index.html");
                 if (!indexHtml.IsExist)
+                {
+                    return re;
+                }
+                
+                // 有 但是是文件的话
+                if (_contentTypeProvider.TryGetContentType(pathValue.ToLower(), out _))
                 {
                     return re;
                 }
