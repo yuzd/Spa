@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 
-namespace spa.JavaScriptViewEngine.Utils
+namespace spa.Utils
 {
     public class ConfigHelper
     {

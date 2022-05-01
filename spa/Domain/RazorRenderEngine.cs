@@ -4,22 +4,20 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using JavaScriptViewEngine.Utils;
 using Jint.CommonJS;
 using Jint.Native;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.StaticFiles;
 using Newtonsoft.Json.Linq;
 using NLog;
 using RazorLight;
-using spa.JavaScriptViewEngine.Utils;
 using spa.Models;
 using spa.Plugins;
+using spa.Utils;
 
-namespace spa.JavaScriptViewEngine
+namespace spa.Domain
 {
 
     public class RazorRenderEngine

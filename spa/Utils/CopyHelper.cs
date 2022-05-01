@@ -1,4 +1,4 @@
-namespace JavaScriptViewEngine.Utils
+namespace spa.Utils
 {
     using System;
     using System.Collections.Generic;

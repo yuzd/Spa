@@ -10,7 +10,7 @@
 using System.Linq;
 using Microsoft.AspNetCore.StaticFiles;
 
-namespace spa.JavaScriptViewEngine.Utils;
+namespace spa.Utils;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;

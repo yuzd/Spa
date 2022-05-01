@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using spa.JavaScriptViewEngine.Utils;
+using spa.Utils;
 
-namespace spa.JavaScriptViewEngine.Middleware
+namespace spa.Domain
 {
     public class RenderEngineMiddleware
     {

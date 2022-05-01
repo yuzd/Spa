@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using JavaScriptViewEngine;
 using LogDashboard;
 using LogDashboard.Authorization.Filters;
 using Microsoft.AspNetCore.Builder;
@@ -13,9 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Serialization;
-using spa.Controller;
 using spa.Filter;
-using spa.JavaScriptViewEngine.Utils;
+using spa.Utils;
 
 namespace spa
 {

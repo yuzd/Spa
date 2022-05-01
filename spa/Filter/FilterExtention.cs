@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using JavaScriptViewEngine;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
@@ -14,10 +13,8 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using spa.Asset;
-using spa.Controller;
-using spa.JavaScriptViewEngine;
-using spa.JavaScriptViewEngine.Middleware;
-using spa.JavaScriptViewEngine.Utils;
+using spa.Domain;
+using spa.Utils;
 
 namespace spa.Filter
 {

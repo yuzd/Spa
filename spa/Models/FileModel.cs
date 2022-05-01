@@ -1,7 +1,7 @@
 using System;
 using System.IO;
-using JavaScriptViewEngine.Utils;
 using Microsoft.AspNetCore.Hosting;
+using spa.Utils;
 
 namespace spa.Models
 {

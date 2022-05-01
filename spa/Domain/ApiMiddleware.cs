@@ -7,17 +7,15 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using JavaScriptViewEngine.Utils;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NLog;
-using spa.JavaScriptViewEngine.Utils;
 using spa.Models;
+using spa.Utils;
 
-namespace spa.Controller
+namespace spa.Domain
 {
     /// <summary>
     /// api
