@@ -7,9 +7,11 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using spa.Asset;
@@ -21,8 +23,18 @@ namespace spa.Filter
     public static class FilterExtention
     {
         private static readonly IDictionary<string, EmbeddedAssetDescriptor> _pathToAssetMap = new ConcurrentDictionary<string, EmbeddedAssetDescriptor>();
-        public static IApplicationBuilder UseSpa(this IApplicationBuilder app)
+        public static IApplicationBuilder UseSpa(this IApplicationBuilder app,IWebHostEnvironment env,IConfiguration configuration)
         {
+            ConfigHelper._configuration = configuration;
+            ConfigHelper.ContentRootPath = env.ContentRootPath;
+            ConfigHelper.WebRootPath = env.WebRootPath;
+            if (string.IsNullOrEmpty(ConfigHelper.WebRootPath))
+            {
+                ConfigHelper.WebRootPath = Path.Combine(ConfigHelper.ContentRootPath, "wwwroot");
+            }
+
+            ConfigHelper.BackupPath = Path.Combine(env.WebRootPath, "_backup_");
+            
             //对于敏感的文件不让访问
             app.UseNotAllowedFileFilter();
 
