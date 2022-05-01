@@ -1,0 +1,197 @@
+﻿<!DOCTYPE html>
+
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>SPA容器权限</title>
+    
+    <script type="text/javascript" src="spa/Asset/Editor/lib/jquery-3.1.1.min.js"></script>
+    <link rel="stylesheet" href="spa/Asset/Editor/lib/bootstrap.min.css">
+    <link rel="stylesheet" href="spa/Asset/Editor/css/common.css">
+    <link rel="stylesheet" type="text/css" href="spa/Asset/Editor/lib/jquery-confirm.css"/>
+    <script type="text/javascript" src="spa/Asset/Editor/lib/jquery-confirm.min.js"></script>
+    <script src="spa/Asset/Editor/lib/bootstrap.min.js"></script>
+    <script src="spa/Asset/Editor/lib/dropdowns-enhancement.js"></script>
+    <link rel="stylesheet" href="spa/Asset/Editor/lib/dropdowns-enhancement.css">
+    <link rel="stylesheet" href="spa/Asset/Editor/css/policy_editor.css">
+    <script src="spa/Asset/Editor/js/patron_parameters.js"></script>
+    <script src="spa/Asset/Editor/js/policy_editor.js"></script>
+    <script src=".spa/Asset/Editor/lib/editable-select.js"></script>
+    <link rel="stylesheet" href="spa/Asset/Editor/lib/editable-select.css">
+    <link rel="icon" href="spa/Asset/Admin/favicon.ico">
+</head>
+<body>
+
+<div class="container">
+	<h3 style="text-align: center;margin-top: 1vh;margin-bottom: 1vh"><b>权限配置</b></h3>
+	<div id="excel">
+	</div>
+
+	<div style="text-align: center;padding-top:1vh;padding-bottom: 2vh">
+		<button type="button" class="btn btn-success btn-block"
+		        onclick="postPolicyToServer()">保存
+		</button>
+	</div>
+</div>
+
+
+<script>
+      
+        var current_json = new Object();
+        var custom_rule = new Object();
+        var policy_name;
+        var tenant_id;
+        let row=0,column=0;
+        let policyjson = 
+            [
+            "p, alice, data1, read",
+            "p, bob, data2, write",
+            "p, data2_admin, data2, read",
+            "p, data2_admin, data2, write",
+            "g, alice, data2_admin",
+            "p, alice, /alice_data/!*, GET",
+            "p, alice, /alice_data/resource1, POST",
+            "p, bob, /alice_data/resource2, GET",
+            "p, bob, /bob_data/!*, POST",
+            "p, cathy, /cathy_data, (GET)|(POST)"
+        ];
+        let policyObj;
+        $(document).ready(function () {
+            policy_name = GetQueryString("policy_name");//从url中获取policy name
+            tenant_id = GetQueryString("tenant_id");//从url中获取tenant_id
+            tenant_name = GetQueryString("tenant_name");//从url中获取tenant_id，再拿去get
+            $("#username").text(tenant_name);
+
+            //$.getJSON(getBaseUrl()+"/" + "tenants/" + tenant_id + "/policies/" + policy_name, function (data) {
+                //data = policyjson;
+                //policyjson = data;
+                row = policyjson.length;//此时已经按换行符分割成了数组
+                policyObj = [];
+                for(let i=0;i<row;i++){
+                    if(policyjson[i]=="") continue;//跳过空行
+                    policyObj[i] = (policyjson[i]+"").split(", ");
+                    column = Math.max(column,policyObj[i].length);
+                }
+                showExcel(policyObj);
+
+            //});
+
+        });
+
+        function getExtraColumnHead(const_column_length){
+            if(column>const_column_length) {
+                let count = 1;
+                let head = "";
+                for (let i = column - (const_column_length+1); i >= 0; i--) {
+                    head = head + "<th style='text-align: center'>"+ "自定义列" + count++ +"<a class='pointer-as-hand' onclick='deleteColumn($(this))'>(删除列)</a></th>";
+                }
+                return head;
+            }else{
+                return "";
+            }
+        }
+
+        function deleteColumn($btnObj){
+            let index = $btnObj.parent().parent().children().index($btnObj.parent());
+            column--;
+            $("#exceltable tr :nth-child("+(index+1)+")").remove();
+        }
+
+        function showExcel(policyarrays) {
+            $("#excel").empty();
+            let const_head = '<table class="table table-bordered table-condensed table-striped" id="exceltable"><thead><th style="text-align: center">规则类型</th><th style="text-align: center">租户</th><th style="text-align: center">用户</th><th style="text-align: center">资源路径</th><th style="text-align: center">操作</th>';
+//            let const_head = '<table class="table table-bordered table-condensed table-striped" id="exceltable"><thead><th style="text-align: center">规则类型</th><th style="text-align: center">租户</th><th style="text-align: center">用户</th><th style="text-align: center">资源路径</th><th style="text-align: center">操作</th><th style="text-align: center">服务</th><th style="text-align: center">授权</th>';
+            let list_html_head = const_head + getExtraColumnHead((const_head.match(/<th /g)).length);//+'<th style="text-align: center;width:8em"><span>选项</span><a class="pointer-as-hand" onclick="insertColumn()">(插入列)</a></th></thead><tbody id="excelbody">'
+            let list_html_body = "";
+            let list_html_foot = '</tbody></table>';
+            policyarrays.forEach(function (element, index) {
+                list_html_body = list_html_body + getRow(element);
+            });
+            $("#excel").html(list_html_head+list_html_body+list_html_foot);
+        }
+
+        function insertColumn(){
+            column++;
+            showExcel(policyObj);
+        }
+
+        function getRow(array){
+            var html = "<tr>";
+            for(var i=0;i<column;i++){
+                if(i<array.length){
+	                if (i == 0) { //要用选择框
+		                if (array[i] == 'p') {
+			                html = html + '<td align="center"><select style="width:9vw" oninput="onInputRed($(this))"> <option selected>p</option><option>g</option></td>';
+		                } else {
+			                html = html + '<td align="center"><select style="width:9vw" oninput="onInputRed($(this))"> <option>p</option><option selected>g</option></td>';
+		                }
+	                } else {
+		                html = html + '<td align="center"><input style="width:9vw" oninput="onInputRed($(this))" value="' + array[i] + '"></td>';
+
+	                } 
+                }else{
+                    html = html + '<td align="center"><input style="width:9vw" oninput="onInputRed($(this))" value=""></td>';//不够就补上空的输入框
+                }
+            }
+            html = html + '<td align="center"><a class="pointer-as-hand" onclick="insertRow($(this))">插入行</a>&nbsp;<a class="pointer-as-hand" onclick="deleteCurrentRow($(this))">删除行</a></td>';//添加删除行
+            html = html + "</tr>";
+            return html;
+        }
+
+        function onInputRed(inputObj){
+            if(inputObj.val()!=""){
+                inputObj.css("border-color","initial");
+            }
+        }
+
+        function deleteCurrentRow(deleteBtnObj){
+            deleteBtnObj.parent().parent().remove();
+        }
+
+        function insertRow(addBtnObj){
+            addBtnObj.parent().parent().after(getRow([]));
+        }
+
+        //post并后退
+        function postPolicyToServer() {
+            policyObj = [];
+            let hasNullInput = false;
+            //检测是否有空
+            $("#excelbody").children("tr").each(function () {
+                $(this).children("td").each(function (index,element) {
+                    let input = $(this).find("input").first();
+
+                    if(input.length>0){
+                        if(input.val()=="" && index<=2){//前三个必须非空
+                            input.css("border-color","red");
+                            hasNullInput = true;
+                        }else{
+                            input.css("border-color","initial");
+                        }
+                    }
+                });
+            });
+
+            if(hasNullInput==false) {
+                $("#excelbody").children("tr").each(function () {
+                    let tempString = "";
+                    $(this).children("td").each(function () {
+                        if ($(this).find("input").length!=0 && $(this).find("input").val() != "") {//跳过空的和操作行
+                            tempString = tempString + $(this).find("input").val() + ", ";
+                        }
+                    });
+                    policyObj.push(tempString.substring(0, tempString.length - 2));
+                });
+                //以json格式发送就需要用stringify这个函数
+                $.post(getBaseUrl()+"/" + "tenants/" + tenant_id + "/policies/" + policy_name + "/",JSON.stringify(policyObj), function (data) {
+                    //console.log("save_policy_success:" + policy_name + ":" + data);
+                    niceAlert("Successfully saved",true);
+                    //history.go(-1);
+                }, "json");
+            }
+        }
+    </script>
+</body>
+</html>

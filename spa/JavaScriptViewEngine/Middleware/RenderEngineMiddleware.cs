@@ -1,28 +1,22 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 
-namespace JavaScriptViewEngine.Middleware
+namespace spa.JavaScriptViewEngine.Middleware
 {
-    /// <summary>
-    /// The middleware that adds a <see cref="IRenderEngine"/> to the request items
-    /// to be used. After the request, the engine get's either disposed, or added
-    /// back to a pool of engines.
-    /// </summary>
     public class RenderEngineMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly IRenderEngineFactory _renderEngineFactory;
+        private readonly RazorRenderEngine _engine;
+        private readonly FileExtensionContentTypeProvider _contentTypeProvider;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RenderEngineMiddleware"/> class.
-        /// </summary>
-        /// <param name="next">The next.</param>
-        /// <param name="renderEngineFactory">The render engine factory.</param>
-        public RenderEngineMiddleware(RequestDelegate next,
-            IRenderEngineFactory renderEngineFactory)
+        public RenderEngineMiddleware(RequestDelegate next, RazorRenderEngine engine)
         {
             _next = next;
-            _renderEngineFactory = renderEngineFactory;
+            _engine = engine;
+            _contentTypeProvider = new FileExtensionContentTypeProvider();
         }
 
         /// <summary>
@@ -32,20 +26,35 @@ namespace JavaScriptViewEngine.Middleware
         /// <returns></returns>
         public async Task Invoke(HttpContext context)
         {
-            IRenderEngine engine = null;
-            
             try
             {
-                engine = _renderEngineFactory.RequestEngine();
+                var pathValue = context.Request.Path.Value!.ToString();
+                if (string.IsNullOrEmpty(pathValue) || "/" == pathValue)
+                {
+                    await _next.Invoke(context);
+                    return;
+                }
 
-                context.Items["RenderEngine"] = engine;
+                if (_contentTypeProvider.TryGetContentType(pathValue.ToLower(), out _))
+                {
+                    await _next.Invoke(context);
+                    return;
+                }
 
-                await _next(context);
+                var html = await _engine.RenderAsync(context);
+                if (string.IsNullOrEmpty(html))
+                {
+                    await _next.Invoke(context);
+                    return;
+                }
+
+                context.Response.ContentType = "text/html;charset=utf-8";
+                context.Response.StatusCode = 200;
+                await context.Response.WriteAsync(html);
             }
-            finally
+            catch
             {
-                if (engine != null)
-                    _renderEngineFactory.ReturnEngine(engine);
+                await _next.Invoke(context);
             }
         }
     }

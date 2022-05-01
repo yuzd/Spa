@@ -7,12 +7,16 @@ using System.Text;
 using System.Threading.Tasks;
 using JavaScriptViewEngine;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using spa.Asset;
 using spa.Controller;
+using spa.JavaScriptViewEngine;
+using spa.JavaScriptViewEngine.Middleware;
 using spa.JavaScriptViewEngine.Utils;
 
 namespace spa.Filter
@@ -27,11 +31,14 @@ namespace spa.Filter
 
             app.UseEmbeddedAsset();
 
+            app.UseEmbeddedAdmin();
+            app.UseEmbeddedCasBin();
+
             //内部api
             app.UseWhen(
                 c =>
                 {
-                    var path = c.Request.Path.Value.ToLower();
+                    var path = c.Request.Path.Value!.ToLower();
                     return path.EndsWith(".api") || path.EndsWith(".rollback") || path.EndsWith(".upload") || path.EndsWith(".delete") || path.EndsWith(".pathlist") || path.EndsWith(".reupload");
                 },
                 _ => _.UseMiddleware<ApiMiddleware>());
@@ -40,8 +47,7 @@ namespace spa.Filter
             app.UseAllowedFileFilter();
 
             //使用js引擎
-            app.UseJsEngine();
-
+            app.UseMiddleware<RenderEngineMiddleware>();
 
             var wwwrootAppsettingJson = Path.Combine(ConfigHelper.WebRootPath, ConfigHelper.DefaultAppSettingsFile);
             if (!File.Exists(wwwrootAppsettingJson))
@@ -51,6 +57,15 @@ namespace spa.Filter
 
             return app;
 
+        }
+
+        public static IServiceCollection AddSpa(this IServiceCollection services)
+        {
+            if (services == null)
+                throw new ArgumentNullException(nameof(services));
+
+            services.AddSingleton<RazorRenderEngine>();
+            return services;
         }
 
         /// <summary>
@@ -79,11 +94,55 @@ namespace spa.Filter
                 },
                 _ => _.Run((async context =>
                 {
-                    using (var webAsset = assetList.GetAsset(context.Request.Path.Value.ToLower()))
+                    using var webAsset = assetList.GetAsset(context.Request.Path.Value.ToLower());
+                    context.Response.ContentType = webAsset.MediaType;
+                    await webAsset.Stream.CopyToAsync(context.Response.Body);
+                })));
+        }
+
+        public static IApplicationBuilder UseEmbeddedAdmin(this IApplicationBuilder app)
+        {
+            var assetList = new EmbeddedAssetProvider(_pathToAssetMap);
+
+            return app.UseWhen(
+                c =>
+                {
+                    var url = c.Request.Path.Value!.ToLower();
+                    return url.EndsWith("spa.admin");
+                },
+                _ => _.Run((async context =>
+                {
+                    var authCheck = ApiMiddleware.AuthCheck(context, true);
+                    if (!authCheck)
                     {
-                        context.Response.ContentType = webAsset.MediaType;
-                        await webAsset.Stream.CopyToAsync(context.Response.Body);
+                        return;
                     }
+                    using var webAsset = assetList.GetAsset("/spa/asset/admin/admin.html");
+                    context.Response.ContentType = webAsset.MediaType;
+                    await webAsset.Stream.CopyToAsync(context.Response.Body);
+                })));
+        }
+
+        public static IApplicationBuilder UseEmbeddedCasBin(this IApplicationBuilder app)
+        {
+            var assetList = new EmbeddedAssetProvider(_pathToAssetMap);
+
+            return app.UseWhen(
+                c =>
+                {
+                    var url = c.Request.Path.Value!.ToLower();
+                    return url.EndsWith("spa.casbin");
+                },
+                _ => _.Run((async context =>
+                {
+                    var authCheck = ApiMiddleware.AuthCheck(context, true);
+                    if (!authCheck)
+                    {
+                        return;
+                    }
+                    using var webAsset = assetList.GetAsset("/spa/asset/editor/casbin.html");
+                    context.Response.ContentType = webAsset.MediaType;
+                    await webAsset.Stream.CopyToAsync(context.Response.Body);
                 })));
         }
 
@@ -154,7 +213,7 @@ namespace spa.Filter
                 _ => _.Run(context =>
                     {
                         var fileName = "";
-                        if (context.Request.Path.Value.ToLower().EndsWith("apple-app-site-association"))
+                        if (context.Request.Path.Value!.ToLower().EndsWith("apple-app-site-association"))
                         {
                             fileName = "apple-app-site-association";
                         }
@@ -202,7 +261,17 @@ namespace spa.Filter
             return app;
         }
 
-
+        public static string GetRawUrl(this HttpRequest request)
+        {
+            // string str1 = request.Scheme ?? string.Empty;
+            // string str2 = request.Host.Value ?? string.Empty;
+            // PathString pathString = request.PathBase;
+            // string str3 = pathString.Value ?? string.Empty;
+            PathString pathString = request.Path;
+            string str4 = pathString.Value ?? string.Empty;
+            string str5 = request.QueryString.Value ?? string.Empty;
+            return new StringBuilder().Append(str4).Append(str5).ToString();
+        }
 
     }
 }

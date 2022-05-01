@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using JavaScriptViewEngine.Utils;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NLog;
@@ -113,12 +114,18 @@ namespace spa.Controller
         /// 验证auth
         /// </summary>
         /// <param name="context"></param>
+        /// <param name="isHtml"></param>
         /// <returns></returns>
-        private bool AuthCheck(HttpContext context)
+        internal static bool AuthCheck(HttpContext context,bool isHtml = false)
         {
             if (!context.Request.Headers.ContainsKey(nameof(Authorization)))
             {
                 context.Response.StatusCode = 401;
+                if (isHtml)
+                {
+                    context.Response.Headers.Add("WWW-Authenticate", (StringValues)"BASIC realm=\"api\"");
+                    context.Response.StatusCode = 401;
+                }
                 return false;
             }
 
@@ -133,6 +140,11 @@ namespace spa.Controller
                                                                                                  !password.Equals(localPassword)))
             {
                 context.Response.StatusCode = 401;
+                if (isHtml)
+                {
+                    context.Response.Headers.Add("WWW-Authenticate", (StringValues)"BASIC realm=\"api\"");
+                    context.Response.StatusCode = 401;
+                }
                 return false;
             }
 
@@ -434,30 +446,16 @@ namespace spa.Controller
         /// <returns></returns>
         private Task list(HttpContext context)
         {
-            List<string> GetBackupList(string path)
-            {
-                var resultList = new List<string>();
-                var backupFolder = Path.Combine(_backupFolder, path);
-                if (!Directory.Exists(backupFolder)) return resultList;
-                var backupFiles = Directory.GetFiles(backupFolder)
-                    .Select(Path.GetFileNameWithoutExtension)
-                    .Select(r => new { Path = Path.Combine(backupFolder, r + ".zip"), Name = r + ".zip", Time = DateTime.ParseExact(r.Split('_')[0], "yyyyMMddHHmmss", null), Size = long.Parse(r.Split('_')[1]) })
-                    .OrderByDescending(r => r.Time)
-                    .Select(Newtonsoft.Json.JsonConvert.SerializeObject)
-                    .ToList();
-                return backupFiles;
-            }
-
-
             var folderList = Directory.GetDirectories(ConfigHelper.WebRootPath);
             var list = (from d in folderList
                         let f = new DirectoryInfo(d)
                         where f.Name != "admin" && f.Name != "_backup_"
-                        select new
+                        select new SpaModel
                         {
-                            Name = f.Name,
+                            Title = f.Name,
+                            DateTime = f.LastWriteTime,
                             Time = f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                            BackupList = GetBackupList(f.Name)
+                            Rollback = GetFirstBackup(f.Name)
                         }
                         )
                 .ToList();
@@ -472,7 +470,7 @@ namespace spa.Controller
                 string currentConfigType = "";
                 using (StreamReader reader = new StreamReader(context.Request.Body))
                 {
-                    currentConfigType = reader.ReadToEnd();
+                    currentConfigType = await reader.ReadToEndAsync();
                 }
 
                 string jsonFile = "";
@@ -605,6 +603,41 @@ namespace spa.Controller
                 logger.Warn(e);
                 return string.Empty;
             }
+        }
+
+        /// <summary>
+        /// 获取前一个版本
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        private string GetFirstBackup(string path)
+        {
+            var resultList = string.Empty;
+            if (!Directory.Exists(ConfigHelper.BackupPath)) return resultList;
+            var backupFolder = Path.Combine(ConfigHelper.BackupPath, path);
+            if (!Directory.Exists(backupFolder)) return resultList;
+            var backupFiles = Directory.GetFiles(backupFolder)
+                .Select(Path.GetFileNameWithoutExtension)
+                .Select(r => new { Path = Path.Combine(backupFolder, r + ".zip"), Name = r, Time = DateTime.ParseExact(r.Split('_')[0], "yyyyMMddHHmmss", null), Size = long.Parse(r.Split('_')[1]) })
+                .OrderByDescending(r => r.Time)
+                .Skip(1)//排除当前的
+                .Select(t => t.Name)
+                .FirstOrDefault();
+            return backupFiles;
+        }
+
+        private List<string> GetBackupList(string path)
+        {
+            var resultList = new List<string>();
+            var backupFolder = Path.Combine(_backupFolder, path);
+            if (!Directory.Exists(backupFolder)) return resultList;
+            var backupFiles = Directory.GetFiles(backupFolder)
+                .Select(Path.GetFileNameWithoutExtension)
+                .Select(r => new { Path = Path.Combine(backupFolder, r + ".zip"), Name = r + ".zip", Time = DateTime.ParseExact(r.Split('_')[0], "yyyyMMddHHmmss", null), Size = long.Parse(r.Split('_')[1]) })
+                .OrderByDescending(r => r.Time)
+                .Select(Newtonsoft.Json.JsonConvert.SerializeObject)
+                .ToList();
+            return backupFiles;
         }
     }
 }

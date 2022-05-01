@@ -40,27 +40,9 @@ namespace spa
                 }
             });
 
-            services.AddJsEngine(builder =>
-            {
-                builder.UseRenderEngine<RazorEngineBuilder>();
-                builder.UseSingletonEngineFactory();
-            });
+            services.AddSpa();
 
            
-            services.AddCors(o => o.AddPolicy("Any", r =>
-            {
-                r.AllowAnyOrigin()
-                    .AllowAnyMethod()
-                    .AllowAnyHeader();
-            }));
-
-            services.AddRazorPages().AddNewtonsoftJson(options =>
-                options.SerializerSettings.ContractResolver =
-                    new DefaultContractResolver());
-
-            services.AddHttpContextAccessor();
-
-            services.AddScoped<BasicAuthFilter>();
         }
 
 
@@ -84,19 +66,7 @@ namespace spa
 
             app.UseSpa();
 
-            app.UseRouting();
 
-            app.UseCors();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-                endpoints.MapRazorPages();
-                endpoints.MapControllerRoute(
-                    name: "Spa",
-                    pattern: "{*url}", defaults: new { controller = "Home", action = "Index" });
-
-            });
 
         }
 
