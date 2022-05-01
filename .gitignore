@@ -9,3 +9,4 @@ spa/spa.csproj.user
 *.user
 spa/AntDeploy.json
 _ReSharper.Caches/
+spa/wwwroot/_backup_/

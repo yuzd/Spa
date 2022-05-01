@@ -22,6 +22,10 @@ namespace spa.JavaScriptViewEngine.Utils
         /// 这个是用来保存上传部署的zip文件保存目录 用来快速回滚用的
         /// </summary>
         public static string BackupPath;
+        /// <summary>
+        /// project用的配置
+        /// </summary>
+        public static string DefaultAppSettingsFile = "_appsettings_.json";
 
         /// <summary>
         /// 获取配置

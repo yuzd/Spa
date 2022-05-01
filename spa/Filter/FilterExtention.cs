@@ -43,7 +43,7 @@ namespace spa.Filter
             app.UseJsEngine();
 
 
-            var wwwrootAppsettingJson = Path.Combine(ConfigHelper.WebRootPath, "appsettings.json");
+            var wwwrootAppsettingJson = Path.Combine(ConfigHelper.WebRootPath, ConfigHelper.DefaultAppSettingsFile);
             if (!File.Exists(wwwrootAppsettingJson))
             {
                 File.WriteAllText(wwwrootAppsettingJson,"{}");
@@ -74,7 +74,7 @@ namespace spa.Filter
             return app.UseWhen(
                 c =>
                 {
-                    var url = c.Request.Path.Value.ToLower();
+                    var url = c.Request.Path.Value!.ToLower();
                     return url.Contains("/asset/");
                 },
                 _ => _.Run((async context =>
@@ -97,12 +97,18 @@ namespace spa.Filter
             #region 对于敏感的文件不让访问
 
             //对于敏感的文件不让访问
-            var fileExtentionNotAllowed = ConfigHelper.GetConfig("NotAllowedFileExtentions", "appsettings.json;.map").Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
-            fileExtentionNotAllowed.Add("server.js");//服务端js代码 里面会有敏感信息
+            var fileExtentionNotAllowed = ConfigHelper.GetConfig("NotAllowedFileExtentions", "appsettings.json;_appsettings_.json;.map").Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+            fileExtentionNotAllowed.Add("_appsettings_.json");
+            fileExtentionNotAllowed.Add("_server_.js");//服务端js代码 里面会有敏感信息
             return app.UseWhen(
                 c =>
                 {
-                    var currentRequestPath = ConfigHelper.GetFileNameByRequestPath(c.Request.Path.Value.ToLower());
+                    var path = c.Request.Path.Value!.ToLower();
+                    if(path.Contains("/_backup_/"))
+                    {
+                        return true;
+                    }
+                    var currentRequestPath = ConfigHelper.GetFileNameByRequestPath(path);
                     foreach (var notallowed in fileExtentionNotAllowed)
                     {
                         if (notallowed.StartsWith(".") && currentRequestPath.EndsWith(notallowed.ToLower()))

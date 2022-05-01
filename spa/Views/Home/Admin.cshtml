@@ -76,7 +76,7 @@
     {
         <div class="div">
             <div class="subDiv1">
-                <p>@data.Title</p>
+                <a href="~/@data.Title" target="_blank">@data.Title</a>
             </div>
             <div class="subDiv2">
                 <p>更新日期：@data.Time</p>
@@ -659,7 +659,7 @@ var _setTimer = undefined;
 
     //展示json
     function showJsonModel(json,type) {
-        window.jsonViewEditor.setText(json);
+        window.jsonViewEditor.setText(json||"{}");
         window.jsonViewEditor.format();
         window.jsonViewEditor.type = type;
         $('#jsonModel').modal({

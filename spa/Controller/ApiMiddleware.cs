@@ -216,7 +216,7 @@ namespace spa.Controller
             //备份
             Action backupAction = () =>
             {
-                BackupUpload(path, DateTime.Now.ToString("yyyyMMddHHmmss") + "_" + file.Length, Path.Combine(filePath, "new.zip"));
+                BackupUpload(path, DateTime.Now.ToString("yyyyMMddHHmmss") + "_" + file.Length, Path.Combine(filePath, "_new_.zip"));
                 (file as FormFolder)?.Dispose();//文件夹上传
             };
 
@@ -234,10 +234,10 @@ namespace spa.Controller
         private static async Task Deploy(HttpContext context, string filePath, Action<string> saveFile, Action backupAction)
         {
             //保存到的目的文件
-            var guidFile = Path.Combine(filePath, "new.zip");
+            var guidFile = Path.Combine(filePath, "_new_.zip");
 
             //解压后的文件夹
-            var destFolder = Path.Combine(filePath, "new");
+            var destFolder = Path.Combine(filePath, "_new_");
 
             try
             {
@@ -413,7 +413,7 @@ namespace spa.Controller
                 return;
             }
 
-            var guidFile = Path.Combine(filePath, "new.zip");
+            var guidFile = Path.Combine(filePath, "_new_.zip");
             if (File.Exists(guidFile))
             {
                 await context.Response.WriteAsync("please wait 5 sencods and retry");
@@ -452,12 +452,14 @@ namespace spa.Controller
             var folderList = Directory.GetDirectories(ConfigHelper.WebRootPath);
             var list = (from d in folderList
                         let f = new DirectoryInfo(d)
+                        where f.Name != "admin" && f.Name != "_backup_"
                         select new
                         {
                             Name = f.Name,
                             Time = f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"),
                             BackupList = GetBackupList(f.Name)
-                        }).Where(r => !r.Name.Equals("admin"))
+                        }
+                        )
                 .ToList();
             context.Response.ContentType = "application/json";
             return context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(list));
@@ -476,15 +478,15 @@ namespace spa.Controller
                 string jsonFile = "";
                 if (currentConfigType == "global")
                 {
-                    jsonFile = Path.Combine(ConfigHelper.WebRootPath, "appsettings.json");
+                    jsonFile = Path.Combine(ConfigHelper.WebRootPath, ConfigHelper.DefaultAppSettingsFile);
                 }
                 else
                 {
-                    jsonFile = Path.Combine(ConfigHelper.WebRootPath, currentConfigType, "appsettings.json");
+                    jsonFile = Path.Combine(ConfigHelper.WebRootPath, currentConfigType, ConfigHelper.DefaultAppSettingsFile);
                 }
                 if (!File.Exists(jsonFile))
                 {
-                    File.WriteAllText(jsonFile,"{}");
+                    await File.WriteAllTextAsync(jsonFile, "{}");
                     return;
                 }
                 await context.Response.WriteAsync($"{await File.ReadAllTextAsync(jsonFile)}");
@@ -494,7 +496,7 @@ namespace spa.Controller
             if (path.EndsWith("serverjsget"))
             {
                 var spa = path.Split('-')[0];
-                var jsonFile = Path.Combine(ConfigHelper.WebRootPath, spa, "server.js");
+                var jsonFile = Path.Combine(ConfigHelper.WebRootPath, spa, "_server_.js");
                 if (!File.Exists(jsonFile))
                 {
                     await context.Response.WriteAsync($"notfound");
@@ -518,7 +520,7 @@ namespace spa.Controller
                     }
 
                     JToken jsonObj = JToken.Parse(json);
-                    var currentPathType = jsonObj["type"]?.ToString()??"global";
+                    var currentPathType = jsonObj["type"]?.ToString() ?? "global";
                     var jsonString = ConvertJsonString(jsonObj["json"].ToString());
                     if (string.IsNullOrEmpty(jsonString))
                     {
@@ -526,7 +528,7 @@ namespace spa.Controller
                         return;
                     }
 
-                    var jsonFile = currentPathType == "global" ? Path.Combine(ConfigHelper.WebRootPath, "appsettings.json") : Path.Combine(ConfigHelper.WebRootPath, currentPathType, "appsettings.json");
+                    var jsonFile = currentPathType == "global" ? Path.Combine(ConfigHelper.WebRootPath, ConfigHelper.DefaultAppSettingsFile) : Path.Combine(ConfigHelper.WebRootPath, currentPathType, ConfigHelper.DefaultAppSettingsFile);
                     await File.WriteAllTextAsync(jsonFile, jsonString);
                     await context.Response.WriteAsync($"success");
                     return;
@@ -547,7 +549,7 @@ namespace spa.Controller
                         return;
                     }
 
-                    var jsonFile = Path.Combine(ConfigHelper.WebRootPath, spa, "server.js");
+                    var jsonFile = Path.Combine(ConfigHelper.WebRootPath, spa, "_server_.js");
                     File.WriteAllText(jsonFile, json);
 
                     await context.Response.WriteAsync($"success");
@@ -572,7 +574,7 @@ namespace spa.Controller
         /// </summary>
         /// <param name="str"></param>
         /// <returns></returns>
-        private string ConvertJsonString(string str,object obj1 = null)
+        private string ConvertJsonString(string str, object obj1 = null)
         {
             try
             {
@@ -580,7 +582,7 @@ namespace spa.Controller
                 JsonSerializer serializer = new JsonSerializer();
                 TextReader tr = new StringReader(str);
                 JsonTextReader jtr = new JsonTextReader(tr);
-                object obj = obj1?? serializer.Deserialize(jtr);
+                object obj = obj1 ?? serializer.Deserialize(jtr);
                 if (obj != null)
                 {
                     StringWriter textWriter = new StringWriter();

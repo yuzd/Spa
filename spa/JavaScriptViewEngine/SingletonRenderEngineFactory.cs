@@ -15,15 +15,16 @@ using Microsoft.AspNetCore.Hosting;
 using Newtonsoft.Json.Linq;
 using NLog;
 using RazorLight;
+using spa.JavaScriptViewEngine.Utils;
 using spa.Models;
 using spa.Plugins;
 
 namespace JavaScriptViewEngine
 {
     public class RazorEngineOption
-         {
-             
-         }
+    {
+
+    }
 
     public class RazorEngineBuilder : IRenderEngineBuilder
     {
@@ -53,19 +54,29 @@ namespace JavaScriptViewEngine
 
 
         /// <summary>
-        /// appsettions.json配置文件内容
+        /// global appsettions.json配置文件内容
         /// </summary>
         private Dictionary<string, string> _appsettingsJson = new Dictionary<string, string>();
-        
+
+        /// <summary>
+        /// current appsettions.json配置文件内容
+        /// </summary>
+        private Dictionary<string, string> _currentAppsettingsJson = new Dictionary<string, string>();
+
         /// <summary>
         /// 记录razor的缓存
         /// </summary>
         private ConcurrentDictionary<string, string> cacheList = new ConcurrentDictionary<string, string>();
-        
+
         /// <summary>
-        /// appsettions.json配置文件最后更新时间
+        /// global appsettions.json配置文件最后更新时间
         /// </summary>
         private DateTime? _appJsonLastWriteTime;
+
+        /// <summary>
+        /// current appsettions.json配置文件最后更新时间
+        /// </summary>
+        private DateTime? _currentAppJsonLastWriteTime;
 
         static RazorRenderEngine()
         {
@@ -91,7 +102,7 @@ namespace JavaScriptViewEngine
                 Html = "",
                 Status = 200
             };
-            
+
             if (string.IsNullOrEmpty(path) || path.Equals("/")) return re;
             var nomarlPath = path;
             try
@@ -115,26 +126,15 @@ namespace JavaScriptViewEngine
                     return re;
                 }
 
-                var jsonFile = new FileInfo(Path.Combine(_hostingEnvironment.WebRootPath, "appsettings.json"));
-                if (jsonFile.Exists && (_appJsonLastWriteTime == null || _appJsonLastWriteTime != jsonFile.LastWriteTime))
-                {
-                    _appJsonLastWriteTime = jsonFile.LastWriteTime;
-                    try
-                    {
-                        this._appsettingsJson = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(CopyHelper.ReadAllText(jsonFile.FullName));
-                    }
-                    catch (Exception e)
-                    {
-                        logger.Info(e.ToString());
-                    }
-                }
+                CheckConfigRefresh();
+                CheckConfigRefresh(entryPointName);
 
                 var html = indexHtml.GetContent();
                 re.Html = html;
 
                 var cacheKey = entryPointName + "_" + indexHtml.LastModifyTime.ToString("yyyMMddHHmmss");
 
-                var jsFileContent = new FileModel(_hostingEnvironment, entryPointName, "server.js");
+                var jsFileContent = new FileModel(_hostingEnvironment, entryPointName, "_server_.js");
                 dynamic serverJsResult = null;
                 if (jsFileContent.IsExist)
                 {
@@ -146,14 +146,14 @@ namespace JavaScriptViewEngine
                     try
                     {
                         var jsValue = exports.AsObject().Get("main").Invoke(new JsValue(nomarlPath)).ToString();
-                        if (!string.IsNullOrEmpty(jsValue) && jsValue!="null" && jsValue!="undefined")
+                        if (!string.IsNullOrEmpty(jsValue) && jsValue != "null" && jsValue != "undefined")
                         {
                             serverJsResult = JObject.Parse(jsValue);
                         }
                     }
                     catch (Exception e)
                     {
-                        logger.Error("excute server.js fail:"+e.Message);
+                        logger.Error("excute _server_.js fail:" + e.Message);
                     }
                 }
 
@@ -161,16 +161,22 @@ namespace JavaScriptViewEngine
                 {
                     serverJsResult = new JObject();
                 }
-
-                serverJsResult.Env = new JObject();
+                serverJsResult.GlobalEnv = new JObject();
                 if (_appsettingsJson != null)
                 {
                     foreach (var jsonItem in _appsettingsJson)
                     {
+                        serverJsResult.GlobalEnv[jsonItem.Key] = jsonItem.Value;
+                    }
+                }
+                serverJsResult.Env = new JObject();
+                if (_currentAppsettingsJson != null)
+                {
+                    foreach (var jsonItem in _currentAppsettingsJson)
+                    {
                         serverJsResult.Env[jsonItem.Key] = jsonItem.Value;
                     }
                 }
-
                 try
                 {
                     var cacheResult = _engine.Handler.Cache.RetrieveTemplate(cacheKey);
@@ -209,6 +215,37 @@ namespace JavaScriptViewEngine
             }
 
             return re;
+        }
+
+        private void CheckConfigRefresh(string projectName = null)
+        {
+            var jsonFile = string.IsNullOrEmpty(projectName) ? new FileInfo(Path.Combine(_hostingEnvironment.WebRootPath, ConfigHelper.DefaultAppSettingsFile)) :
+                new FileInfo(Path.Combine(_hostingEnvironment.WebRootPath, projectName, ConfigHelper.DefaultAppSettingsFile));
+            var jsonLastTime = string.IsNullOrEmpty(projectName) ? _appJsonLastWriteTime : _currentAppJsonLastWriteTime;
+            if (jsonFile.Exists && (jsonLastTime == null || jsonLastTime != jsonFile.LastWriteTime))
+            {
+                try
+                {
+                    if (string.IsNullOrEmpty(projectName))
+                    {
+                        _appJsonLastWriteTime = jsonFile.LastWriteTime;
+                        this._appsettingsJson =
+                            Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(
+                                CopyHelper.ReadAllText(jsonFile.FullName));
+                    }
+                    else
+                    {
+                        _currentAppJsonLastWriteTime = jsonFile.LastWriteTime;
+                        this._currentAppsettingsJson =
+                            Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(
+                                CopyHelper.ReadAllText(jsonFile.FullName));
+                    }
+                }
+                catch (Exception e)
+                {
+                    logger.Info(e.ToString());
+                }
+            }
         }
 
         public RenderResult Render(string path, object model, dynamic viewBag, RouteValueDictionary routevalues, string area, ViewType viewType)

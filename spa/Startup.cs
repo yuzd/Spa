@@ -74,7 +74,7 @@ namespace spa
                 ConfigHelper.WebRootPath = Path.Combine(ConfigHelper.ContentRootPath, "wwwroot");
             }
 
-            ConfigHelper.BackupPath = Path.Combine(env.ContentRootPath, "backup");
+            ConfigHelper.BackupPath = Path.Combine(env.WebRootPath, "_backup_");
 #if DEBUG
             app.UseDeveloperExceptionPage();
 #endif
