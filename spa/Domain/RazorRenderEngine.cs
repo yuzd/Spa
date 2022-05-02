@@ -201,6 +201,48 @@ namespace spa.Domain
             return re;
         }
 
+        public async Task RenderCache(string projectName)
+        {
+            var entryPointName = projectName.ToLowerInvariant();
+            var indexHtml = new FileModel(_hostingEnvironment, entryPointName, "index.html");
+            if (!indexHtml.IsExist)
+            {
+                return ;
+            }
+            var html = indexHtml.GetContent();
+            dynamic serverJsResult = new JObject();;
+            serverJsResult.Env = new JObject();
+            serverJsResult.GlobalEnv = new JObject();
+            var cacheKey = entryPointName + "_" + indexHtml.LastModifyTime.ToString("yyyMMddHHmmss");
+            try
+            {
+                var cacheResult = _engine.Handler.Cache.RetrieveTemplate(cacheKey);
+                if (cacheResult.Success)
+                {
+                    var itemple = cacheResult.Template.TemplatePageFactory();
+                    itemple.DisableEncoding = true;
+                    await _engine.RenderTemplateAsync(itemple, serverJsResult);
+                    return ;
+                }
+
+                string result = await _engine.CompileRenderStringAsync(cacheKey, html, serverJsResult);
+                if (!cacheList.TryGetValue(entryPointName, out var oldCache))
+                {
+                    cacheList.TryAdd(entryPointName, cacheKey);
+                }
+                else
+                {
+                    //之前有缓存了 就清掉
+                    _engine.Handler.Cache.Remove(oldCache);
+                    cacheList[entryPointName] = cacheKey;
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Error(e.ToString());
+            }
+        }
+
         private void CheckConfigRefresh(string projectName = null)
         {
             var jsonFile = string.IsNullOrEmpty(projectName)

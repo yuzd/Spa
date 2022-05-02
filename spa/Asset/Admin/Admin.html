@@ -224,6 +224,7 @@
 		"            </div>\n" +
 		"            <div class=\"subDiv2\">\n" +
 		"                <p>更新日期：{Time}</p>\n" +
+		"                <p>最后上传：{User}</p>\n" +
 		"            </div>\n" +
 		"            <div class=\"subDiv3\">\n" +
 		"                <div class=\"closeButton supperSpa\" onclick=\"deleteSpa('{Title}')\"></div>\n" +
@@ -239,7 +240,7 @@
 		"                            </li>\n" +
 		"                            <li class=\"divider\"></li>\n" +
 		"                            <li>\n" +
-		"                                <a href=\"#\" onclick=\"rollback('{RollbackPath}')\">回滚(Rollback)</a>\n" +
+		"                                <a href=\"#\" onclick=\"rollback('{Title}','{RollbackPath}')\">回滚(Rollback)</a>\n" +
 		"                            </li>\n" +
 		"                          <li class=\"divider\"></li>\n" +
 		"                          <li>\n" +
@@ -471,7 +472,7 @@
     }
 
 	function render(item) {
-		var html = _templete.replaceAll("{Title}", item.Title).replaceAll("{RollbackPath}", item.RollbackPath).replaceAll("{Time}", item.Time);
+		var html = _templete.replaceAll("{Title}", item.Title).replaceAll("{RollbackPath}", item.RollbackPath).replaceAll("{Time}", item.Time).replaceAll("{User}", item.User);
 		$('#projectAll').append(html);
 	}
 
@@ -586,7 +587,7 @@
 	}
 
 	//回滚提交
-	function rollback(spa) {
+	function rollback(spa,version) {
 		if (!spa) {
 			swal({
 				title: "",
@@ -597,13 +598,13 @@
 		}
 		swal({
 			title: "确定要回滚上一个版本吗?",
-			text: "上一个版本号：" + spa,
+			text: "上一个版本号：" + version,
 			icon: "warning",
 			buttons: true,
 			dangerMode: true,
 		}).then((willDelete)=>{
 				if (willDelete) {
-					spaJax('/' + spa + '.rollback', 'get', 'html').done(end);
+					spaJax('/' + spa + '.rollback', 'post', 'html',version).done(end);
 				}
 			}
 		);

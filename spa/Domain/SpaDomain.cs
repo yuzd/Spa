@@ -20,6 +20,7 @@ namespace spa.Domain;
 
 public class SpaDomain
 {
+    private readonly RazorRenderEngine _engine;
     private static readonly Logger logger;
     private readonly string _backupFolder;
     private readonly int _backUpLimit = 1;
@@ -30,8 +31,9 @@ public class SpaDomain
         logger = LogManager.GetCurrentClassLogger();
     }
 
-    public SpaDomain()
+    public SpaDomain(RazorRenderEngine engine)
     {
+        _engine = engine;
         var backupLimit = ConfigHelper.GetConfig("BackUpLimit", "1");
         if (int.TryParse(backupLimit, out var backUpLimit))
         {
@@ -69,7 +71,7 @@ public class SpaDomain
     /// </summary>
     /// <param name="path"></param>
     /// <param name="context"></param>
-    [SpaApi("获取Api列表",NotCheck = true)]
+    [SpaApi("获取Api列表", NotCheck = true)]
     private async Task getapis(string path, HttpContext context)
     {
         var apilist = getApiNames();
@@ -90,13 +92,13 @@ public class SpaDomain
             };
         return apilist;
     }
-    
+
     /// <summary>
     /// 获取用户列表 非supper
     /// </summary>
     /// <param name="path"></param>
     /// <param name="context"></param>
-    [SpaApi("获取用户列表",SupperRequired = "*")]
+    [SpaApi("获取用户列表", SupperRequired = "*")]
     private async Task getusers(string path, HttpContext context)
     {
         var jsonFile = Path.Combine(ConfigHelper.WebRootPath, ConfigHelper.CasBinUserSettingsFile);
@@ -105,14 +107,16 @@ public class SpaDomain
             await context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(new List<String>()));
             return;
         }
-        var userList = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<String,String>>(await File.ReadAllTextAsync(jsonFile));
+
+        var userList = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<String, String>>(await File.ReadAllTextAsync(jsonFile));
         if (userList == null || !userList.Any())
         {
             await context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(new List<String>()));
             return;
         }
+
         context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(userList.Keys.Select(r=>new {name = r}).ToList()));
+        await context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(userList.Keys.Select(r => new { name = r }).ToList()));
     }
 
     /// <summary>
@@ -120,7 +124,7 @@ public class SpaDomain
     /// </summary>
     /// <param name="path"></param>
     /// <param name="context"></param>
-    [SpaApi("新增用户",SupperRequired = "*")]
+    [SpaApi("新增用户", SupperRequired = "*")]
     private async Task addspauser(string path, HttpContext context)
     {
         using StreamReader reader = new StreamReader(context.Request.Body);
@@ -137,28 +141,29 @@ public class SpaDomain
             await context.Response.WriteAsync($"err: data is error!");
             return;
         }
-        
+
         var jsonFile = Path.Combine(ConfigHelper.WebRootPath, ConfigHelper.CasBinUserSettingsFile);
         if (!File.Exists(jsonFile))
         {
-           await File.WriteAllTextAsync(jsonFile,"{}");
+            await File.WriteAllTextAsync(jsonFile, "{}");
         }
-        
-        var userList = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<String,String>>(await File.ReadAllTextAsync(jsonFile));
+
+        var userList = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<String, String>>(await File.ReadAllTextAsync(jsonFile));
         if (userList != null)
         {
             userList[user.LoginName] = user.Pwd;
         }
-        await File.WriteAllTextAsync(jsonFile,JsonConvert.SerializeObject(userList));
+
+        await File.WriteAllTextAsync(jsonFile, JsonConvert.SerializeObject(userList));
         await context.Response.WriteAsync("success");
     }
-    
+
     /// <summary>
     /// 删除用户 非supper
     /// </summary>
     /// <param name="path"></param>
     /// <param name="context"></param>
-    [SpaApi("删除用户",SupperRequired = "*")]
+    [SpaApi("删除用户", SupperRequired = "*")]
     private async Task deleteuser(string path, HttpContext context)
     {
         var jsonFile = Path.Combine(ConfigHelper.WebRootPath, ConfigHelper.CasBinUserSettingsFile);
@@ -167,27 +172,31 @@ public class SpaDomain
             await context.Response.WriteAsync("success");
             return;
         }
-        var userList = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<String,String>>(await File.ReadAllTextAsync(jsonFile));
+
+        var userList = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<String, String>>(await File.ReadAllTextAsync(jsonFile));
         if (userList == null)
         {
             await context.Response.WriteAsync("success");
             return;
         }
+
         if (!userList.ContainsKey(path))
         {
             await context.Response.WriteAsync("success");
             return;
         }
+
         userList.Remove(path);
-        await File.WriteAllTextAsync(jsonFile,JsonConvert.SerializeObject(userList));
+        await File.WriteAllTextAsync(jsonFile, JsonConvert.SerializeObject(userList));
         await context.Response.WriteAsync("success");
     }
+
     /// <summary>
     /// 获取当前用户
     /// </summary>
     /// <param name="path"></param>
     /// <param name="context"></param>
-    [SpaApi("获取当前用户",NotCheck = true)]
+    [SpaApi("获取当前用户", NotCheck = true)]
     private async Task getuser(string path, HttpContext context)
     {
         var spaUser = context.Items["spaUser"] as SpaUser;
@@ -208,7 +217,7 @@ public class SpaDomain
     /// </summary>
     /// <param name="path"></param>
     /// <param name="context"></param>
-    [SpaApi("创建新项目",SupperRequired = "*")]
+    [SpaApi("创建新项目", SupperRequired = "*")]
     private async Task create(string path, HttpContext context)
     {
         await upload(path, context, false);
@@ -234,14 +243,21 @@ public class SpaDomain
     [SpaApi("回滚")]
     private async Task rollback(string path, HttpContext context)
     {
-        var arr = path.Split('-');
+        using StreamReader reader = new StreamReader(context.Request.Body);
+        var json = await reader.ReadToEndAsync();
+        if (String.IsNullOrEmpty(json))
+        {
+            await context.Response.WriteAsync("path is invalid");
+            return;
+        }
+        var arr = json.Split('-');
         if (arr.Length != 2)
         {
             await context.Response.WriteAsync("path is invalid");
             return;
         }
 
-        var action = arr[0];
+        var action = path;
         var fileName = Path.Combine(_backupFolder, action, arr[1] + ".zip");
         if (!File.Exists(fileName))
         {
@@ -267,7 +283,7 @@ public class SpaDomain
     /// <param name="path"></param>
     /// <param name="context"></param>
     /// <returns></returns>
-    [SpaApi("保存权限配置",SupperRequired = "*")]
+    [SpaApi("保存权限配置", SupperRequired = "*")]
     private async Task savepolicy(string path, HttpContext context)
     {
         using StreamReader reader = new StreamReader(context.Request.Body);
@@ -296,7 +312,7 @@ public class SpaDomain
     /// <param name="path"></param>
     /// <param name="context"></param>
     /// <returns></returns>
-    [SpaApi("获取权限配置",SupperRequired = "*")]
+    [SpaApi("获取权限配置", SupperRequired = "*")]
     private async Task getpolicy(string path, HttpContext context)
     {
         var filePath = Path.Combine(ConfigHelper.WebRootPath, ConfigHelper.CasBinPolicyFile);
@@ -307,7 +323,7 @@ public class SpaDomain
         }
 
         var data = await File.ReadAllLinesAsync(filePath);
-        var list = data.Where(r =>!string.IsNullOrEmpty(r) && r.Length > 5);
+        var list = data.Where(r => !string.IsNullOrEmpty(r) && r.Length > 5);
         await context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(list));
     }
 
@@ -317,7 +333,7 @@ public class SpaDomain
     /// <param name="path"></param>
     /// <param name="context"></param>
     /// <returns></returns>
-    [SpaApi("删除项目",SupperRequired = "*")]
+    [SpaApi("删除项目", SupperRequired = "*")]
     private async Task delete(string path, HttpContext context)
     {
         if (!IsValidPath(path))
@@ -353,7 +369,7 @@ public class SpaDomain
     /// <param name="project"></param>
     /// <param name="context"></param>
     /// <returns></returns>
-    [SpaApi("获取列表",NotCheck = true)]
+    [SpaApi("获取列表", NotCheck = true)]
     private Task pathlist(string project, HttpContext context)
     {
         var apilist = getApiNames();
@@ -363,14 +379,16 @@ public class SpaDomain
         var folderList = Directory.GetDirectories(ConfigHelper.WebRootPath);
         var list = (from d in folderList
                 let f = new DirectoryInfo(d)
-                let auth = spaUser!.Supper || (apilist.Any(y=>e.Auth(spaUser.LoginName,f.Name,y.url)))
+                let auth = spaUser!.Supper || (apilist.Any(y => e.Auth(spaUser.LoginName, f.Name, y.url)))
+                let last = GetFirstBackup(f.Name)
                 where f.Name != "admin" && f.Name != "_backup_" && auth
                 select new SpaModel
                 {
                     Title = f.Name,
                     DateTime = f.LastWriteTime,
                     Time = f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                    Rollback = GetFirstBackup(f.Name)
+                    Rollback = last.Item2.Item1,
+                    User = last.Item1.Item2
                 }
             )
             .ToList();
@@ -383,7 +401,7 @@ public class SpaDomain
     /// </summary>
     /// <param name="project"></param>
     /// <param name="context"></param>
-    [SpaApi("获取配置",SupperRequired = "global")]
+    [SpaApi("获取配置", SupperRequired = "global")]
     private async Task getconfigjson(string project, HttpContext context)
     {
         string jsonFile = "";
@@ -429,7 +447,7 @@ public class SpaDomain
     /// </summary>
     /// <param name="project"></param>
     /// <param name="context"></param>
-    [SpaApi("保存配置",SupperRequired = "global")]
+    [SpaApi("保存配置", SupperRequired = "global")]
     private async Task saveconfigjson(string project, HttpContext context)
     {
         using StreamReader reader = new StreamReader(context.Request.Body);
@@ -605,12 +623,13 @@ public class SpaDomain
             //创建文件夹
             Directory.CreateDirectory(filePath);
         }
-        
+
         var files = context.Request.Form.Files;
         if (files.Count < 1)
         {
-            await File.WriteAllTextAsync(Path.Combine(filePath,"index.html"),ConfigHelper.NewIndexHtmlTemplete.Replace("@Title@",path));
+            await File.WriteAllTextAsync(Path.Combine(filePath, "index.html"), ConfigHelper.NewIndexHtmlTemplete.Replace("@Title@", path));
             await context.Response.WriteAsync("success");
+            
             return;
         }
 
@@ -648,7 +667,14 @@ public class SpaDomain
         //备份
         void BackupAction()
         {
-            BackupUpload(path, DateTime.Now.ToString("yyyyMMddHHmmss") + "_" + file.Length, Path.Combine(filePath, "_new_.zip"));
+            async void Action()
+            {
+                await _engine.RenderCache(path);
+            }
+
+            new Task(Action).Start();
+            var spaUser = context.Items["spaUser"] as SpaUser;
+            BackupUpload(path, DateTime.Now.ToString("yyyyMMddHHmmss") + "_" + spaUser!.LoginName, Path.Combine(filePath, "_new_.zip"));
             (file as FormFolder)?.Dispose(); //文件夹上传
         }
 
@@ -677,7 +703,7 @@ public class SpaDomain
             {
                 Path = Path.Combine(backupFolder, r + ".zip"),
                 Time = DateTime.ParseExact(r.Split('_')[0], "yyyyMMddHHmmss", null),
-                Size = long.Parse(r.Split('_')[1])
+                UserName = r.Split('_')[1]
             })
             .OrderByDescending(r => r.Time)
             .ToList();
@@ -746,9 +772,9 @@ public class SpaDomain
     /// </summary>
     /// <param name="path"></param>
     /// <returns></returns>
-    private string GetFirstBackup(string path)
+    private ((string, string),(string, string)) GetFirstBackup(string path)
     {
-        var resultList = string.Empty;
+        var resultList = ((string.Empty, String.Empty),(string.Empty, String.Empty));
         if (!Directory.Exists(ConfigHelper.BackupPath)) return resultList;
         var backupFolder = Path.Combine(ConfigHelper.BackupPath, path);
         if (!Directory.Exists(backupFolder)) return resultList;
@@ -756,14 +782,29 @@ public class SpaDomain
             .Select(Path.GetFileNameWithoutExtension)
             .Select(r => new
             {
-                Path = Path.Combine(backupFolder, r + ".zip"), Name = r, Time = DateTime.ParseExact(r.Split('_')[0], "yyyyMMddHHmmss", null),
-                Size = long.Parse(r.Split('_')[1])
+                Path = Path.Combine(backupFolder, r + ".zip"),
+                Name = r,
+                Time = DateTime.ParseExact(r.Split('_')[0], "yyyyMMddHHmmss", null),
+                UserName = r.Split('_')[1]
             })
-            .OrderByDescending(r => r.Time)
-            .Skip(1) //排除当前的
-            .Select(t => t.Name)
+            .OrderByDescending(r => r.Time).ToList();
+
+        var lastFile = backupFiles.Select(t => new Tuple<String,String>(t.Name,t.UserName))
             .FirstOrDefault();
-        return backupFiles;
+        if (lastFile == null)
+        {
+            return ((string.Empty, String.Empty),(string.Empty, String.Empty));
+        }
+        
+        var rollFile = backupFiles
+            .Skip(1) //排除当前的
+            .Select(t => new Tuple<String,String>(t.Name,t.UserName))
+            .FirstOrDefault();
+        if (rollFile == null)
+        {
+            return ((lastFile.Item1,lastFile.Item2 ),("",""));
+        }
+        return ((lastFile.Item1,lastFile.Item2 ),(rollFile.Item1,rollFile.Item2));
     }
 
     private List<string> GetBackupList(string path)
@@ -776,7 +817,7 @@ public class SpaDomain
             .Select(r => new
             {
                 Path = Path.Combine(backupFolder, r + ".zip"), Name = r + ".zip", Time = DateTime.ParseExact(r.Split('_')[0], "yyyyMMddHHmmss", null),
-                Size = long.Parse(r.Split('_')[1])
+                UserName = r.Split('_')[1]
             })
             .OrderByDescending(r => r.Time)
             .Select(Newtonsoft.Json.JsonConvert.SerializeObject)

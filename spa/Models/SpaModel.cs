@@ -25,6 +25,7 @@ namespace spa.Models
         public string Time { get; set; }
         public DateTime DateTime { get; set; }
         public string Rollback { get; set; }
+        public string User { get; set; }
         public string RollbackPath {
             get
             {
