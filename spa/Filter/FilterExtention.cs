@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using NetCasbin;
+using NetCasbin.Model;
 using spa.Asset;
 using spa.Domain;
 using spa.Utils;
@@ -23,7 +25,8 @@ namespace spa.Filter
     public static class FilterExtention
     {
         private static readonly IDictionary<string, EmbeddedAssetDescriptor> _pathToAssetMap = new ConcurrentDictionary<string, EmbeddedAssetDescriptor>();
-        public static IApplicationBuilder UseSpa(this IApplicationBuilder app,IWebHostEnvironment env,IConfiguration configuration)
+
+        public static IApplicationBuilder UseSpa(this IApplicationBuilder app, IWebHostEnvironment env, IConfiguration configuration)
         {
             ConfigHelper._configuration = configuration;
             ConfigHelper.ContentRootPath = env.ContentRootPath;
@@ -34,21 +37,27 @@ namespace spa.Filter
             }
 
             ConfigHelper.BackupPath = Path.Combine(env.WebRootPath, "_backup_");
-            
+
             //对于敏感的文件不让访问
             app.UseNotAllowedFileFilter();
-
+            //对于内置的静态文件访问
             app.UseEmbeddedAsset();
-
-            app.UseEmbeddedAdmin();
-            app.UseEmbeddedCasBin();
+            //内置Admin管理页面
+            app.UseEmbeddedPage("admin");
+            //内置的casbin管理页面
+            app.UseEmbeddedPage("casbin");
 
             //内部api
             app.UseWhen(
                 c =>
                 {
-                    var path = c.Request.Path.Value!.ToLower();
-                    return path.EndsWith(".api") || path.EndsWith(".rollback") || path.EndsWith(".upload") || path.EndsWith(".delete") || path.EndsWith(".pathlist") || path.EndsWith(".reupload");
+                    if (!ApiMiddleware.CanInvoke(c, out var route))
+                    {
+                        return false;
+                    }
+
+                    var apiMiddleware = c.RequestServices.GetService<SpaDomain>();
+                    return apiMiddleware?.IsSpaApi(route.Item2) ?? false;
                 },
                 _ => _.UseMiddleware<ApiMiddleware>());
 
@@ -58,14 +67,9 @@ namespace spa.Filter
             //使用js引擎
             app.UseMiddleware<RenderEngineMiddleware>();
 
-            var wwwrootAppsettingJson = Path.Combine(ConfigHelper.WebRootPath, ConfigHelper.DefaultAppSettingsFile);
-            if (!File.Exists(wwwrootAppsettingJson))
-            {
-                File.WriteAllText(wwwrootAppsettingJson,"{}");
-            }
+            CreateDefaultFile();
 
             return app;
-
         }
 
         public static IServiceCollection AddSpa(this IServiceCollection services)
@@ -74,6 +78,7 @@ namespace spa.Filter
                 throw new ArgumentNullException(nameof(services));
 
             services.AddSingleton<RazorRenderEngine>();
+            services.AddSingleton<SpaDomain>();
             return services;
         }
 
@@ -103,13 +108,22 @@ namespace spa.Filter
                 },
                 _ => _.Run((async context =>
                 {
-                    using var webAsset = assetList.GetAsset(context.Request.Path.Value.ToLower());
-                    context.Response.ContentType = webAsset.MediaType;
-                    await webAsset.Stream.CopyToAsync(context.Response.Body);
+                    using var webAsset = assetList.GetAsset(context.Request.Path.Value!.ToLower());
+                    if (webAsset != null)
+                    {
+                        context.Response.ContentType = webAsset.MediaType;
+                        await webAsset.Stream.CopyToAsync(context.Response.Body);
+                    }
                 })));
         }
 
-        public static IApplicationBuilder UseEmbeddedAdmin(this IApplicationBuilder app)
+        /// <summary>
+        /// 内置管理页面路由
+        /// </summary>
+        /// <param name="app"></param>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        public static IApplicationBuilder UseEmbeddedPage(this IApplicationBuilder app, string path)
         {
             var assetList = new EmbeddedAssetProvider(_pathToAssetMap);
 
@@ -117,39 +131,17 @@ namespace spa.Filter
                 c =>
                 {
                     var url = c.Request.Path.Value!.ToLower();
-                    return url.EndsWith("spa.admin");
+                    return url.EndsWith($"spa.{path.ToLower()}");
                 },
                 _ => _.Run((async context =>
                 {
-                    var authCheck = ApiMiddleware.AuthCheck(context, true);
-                    if (!authCheck)
+                    var authCheck = ApiMiddleware.AuthCheck(context, path);
+                    if (authCheck == null)
                     {
                         return;
                     }
-                    using var webAsset = assetList.GetAsset("/spa/asset/admin/admin.html");
-                    context.Response.ContentType = webAsset.MediaType;
-                    await webAsset.Stream.CopyToAsync(context.Response.Body);
-                })));
-        }
 
-        public static IApplicationBuilder UseEmbeddedCasBin(this IApplicationBuilder app)
-        {
-            var assetList = new EmbeddedAssetProvider(_pathToAssetMap);
-
-            return app.UseWhen(
-                c =>
-                {
-                    var url = c.Request.Path.Value!.ToLower();
-                    return url.EndsWith("spa.casbin");
-                },
-                _ => _.Run((async context =>
-                {
-                    var authCheck = ApiMiddleware.AuthCheck(context, true);
-                    if (!authCheck)
-                    {
-                        return;
-                    }
-                    using var webAsset = assetList.GetAsset("/spa/asset/editor/casbin.html");
+                    using var webAsset = assetList.GetAsset($"/spa/asset/{path.ToLower()}/{path.ToLower()}.html");
                     context.Response.ContentType = webAsset.MediaType;
                     await webAsset.Stream.CopyToAsync(context.Response.Body);
                 })));
@@ -165,19 +157,24 @@ namespace spa.Filter
             #region 对于敏感的文件不让访问
 
             //对于敏感的文件不让访问
-            var fileExtentionNotAllowed = ConfigHelper.GetConfig("NotAllowedFileExtentions", "appsettings.json;_appsettings_.json;.map").Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
-            fileExtentionNotAllowed.Add("_appsettings_.json");
-            fileExtentionNotAllowed.Add("_server_.js");//服务端js代码 里面会有敏感信息
+            var fileExtentionNotAllowed = ConfigHelper.GetConfig("NotAllowedFileExtentions", "appsettings.json;_appsettings_.json")
+                .Split(';', StringSplitOptions.RemoveEmptyEntries).ToList();
+            fileExtentionNotAllowed.Add(ConfigHelper.DefaultAppSettingsFile); // 项目配置
+            fileExtentionNotAllowed.Add(ConfigHelper.DefaultGlobalAppSettingsFile); // 本地配置
+            fileExtentionNotAllowed.Add(ConfigHelper.CasBinUserSettingsFile); // casbin 用户登录
+            fileExtentionNotAllowed.Add(ConfigHelper.CasBinPolicyFile); // casbin 策略
+            fileExtentionNotAllowed.Add(ConfigHelper.ServerJsFile); //服务端js代码
             return app.UseWhen(
                 c =>
                 {
                     var path = c.Request.Path.Value!.ToLower();
-                    if(path.Contains("/_backup_/"))
+                    if (path.Contains("/_backup_/"))
                     {
                         return true;
                     }
+
                     var currentRequestPath = ConfigHelper.GetFileNameByRequestPath(path);
-                    foreach (var notallowed in fileExtentionNotAllowed)
+                    foreach (var notallowed in fileExtentionNotAllowed.Distinct())
                     {
                         if (notallowed.StartsWith(".") && currentRequestPath.EndsWith(notallowed.ToLower()))
                         {
@@ -208,6 +205,7 @@ namespace spa.Filter
             #region 静态文件
 
             #region 针对apple开发的注意事项
+
             //针对apple开发的注意事项
             app.UseWhen(
                 c =>
@@ -231,15 +229,16 @@ namespace spa.Filter
                             var staticFileNameArr = context.Request.Path.Value.Split(new string[] { "www/" }, StringSplitOptions.None);
                             fileName = staticFileNameArr[1];
                         }
+
                         var isoFile = Path.Combine(ConfigHelper.WebRootPath, fileName);
                         if (File.Exists(isoFile))
                         {
                             return context.Response.WriteAsync(File.ReadAllText(isoFile));
                         }
+
                         return context.Response.WriteAsync("404");
                     }
                 ));
-
 
             #endregion
 
@@ -248,7 +247,7 @@ namespace spa.Filter
 
 
             //增加配置静态文件的映射
-            var fileExtention = Environment.GetEnvironmentVariable("AllowedFileExtentionMapping");//格式为 .plist->application/xml,.ipa->application/octet-stream
+            var fileExtention = Environment.GetEnvironmentVariable("AllowedFileExtentionMapping"); //格式为 .plist->application/xml,.ipa->application/octet-stream
             if (!string.IsNullOrEmpty(fileExtention))
             {
                 var provider = new FileExtensionContentTypeProvider();
@@ -259,28 +258,38 @@ namespace spa.Filter
                     if (filePair.Length != 2) continue;
                     provider.Mappings[filePair[0]] = filePair[1];
                 }
+
                 app.UseStaticFiles(new StaticFileOptions
                 {
                     FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
                     ContentTypeProvider = provider
                 });
             }
+
             #endregion
 
             return app;
         }
 
-        public static string GetRawUrl(this HttpRequest request)
+        /// <summary>
+        /// 创建默认文件
+        /// </summary>
+        /// <returns></returns>
+        private static void CreateDefaultFile()
         {
-            // string str1 = request.Scheme ?? string.Empty;
-            // string str2 = request.Host.Value ?? string.Empty;
-            // PathString pathString = request.PathBase;
-            // string str3 = pathString.Value ?? string.Empty;
-            PathString pathString = request.Path;
-            string str4 = pathString.Value ?? string.Empty;
-            string str5 = request.QueryString.Value ?? string.Empty;
-            return new StringBuilder().Append(str4).Append(str5).ToString();
-        }
+            var wwwrootAppsettingJson = Path.Combine(ConfigHelper.WebRootPath, ConfigHelper.DefaultAppSettingsFile);
+            if (!File.Exists(wwwrootAppsettingJson))
+            {
+                File.WriteAllText(wwwrootAppsettingJson, "{}");
+            }
 
+            var wwwrootUserJson = Path.Combine(ConfigHelper.WebRootPath, ConfigHelper.CasBinUserSettingsFile);
+            if (!File.Exists(wwwrootUserJson))
+            {
+                File.WriteAllText(wwwrootUserJson, "{}");
+            }
+
+            ConfigHelper.createEnforcer();
+        }
     }
 }

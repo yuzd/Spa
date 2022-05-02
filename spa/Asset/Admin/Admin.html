@@ -31,8 +31,11 @@
                 <li class="active">
                     <a href="#">首页</a>
                 </li>
-                <li>
+                <li class="supperSpa" style="display: none">
                     <a href="#" onclick="globalJson()">全局配置</a>
+                </li>
+                <li class="supperSpa" style="display: none">
+                    <a href="#" onclick="userAuthConfig()">用户权限</a>
                 </li>
                 <li>
                     <a href="/LogDashboard" target="_blank">日志</a>
@@ -66,7 +69,7 @@
 </div>
 
 <div class="content" id="projectAll">
-    <div class="div" id="up">
+    <div class="div supperSpa" id="up" style="display: none">
         <div class="subDiv11">
         </div>
         <div class="upload"></div>
@@ -110,6 +113,9 @@
                     <li role="presentation">
                         <a href="#uploadFolderMenu" data-toggle="tab">选择文件夹</a>
                     </li>
+                    <li role="presentation">
+                        <a href="#uploadEmpty" data-toggle="tab">空项目</a>
+                    </li>
                 </ul>
                 <div class="tab-content">
                     <div id="uploadZipMenu" class="container tab-pane active">
@@ -122,6 +128,11 @@
                         <div class="form-group" style="max-width: 500px">
                             <label class="control-label">选择文件夹(该文件夹下必须包含index.html)：</label>
                             <input id="uploadFolder" type="file" class="file" data-show-upload="false" webkitdirectory/>
+                        </div>
+                    </div>
+                    <div id="uploadEmpty" class="container tab-pane ">
+                        <div class="form-group" style="max-width: 500px">
+                            <label class="control-label">新创建一个含有默认index.html的空项目</label>
                         </div>
                     </div>
                 </div>
@@ -179,7 +190,7 @@
                     关闭
                 </button>
                 <button type="button" class="btn btn-primary" onclick="reSpa()">
-                    提交更改
+                    上传部署
                 </button>
             </div>
         </div>
@@ -215,7 +226,7 @@
 		"                <p>更新日期：{Time}</p>\n" +
 		"            </div>\n" +
 		"            <div class=\"subDiv3\">\n" +
-		"                <div class=\"closeButton\" onclick=\"deleteSpa('{Title}')\"></div>\n" +
+		"                <div class=\"closeButton supperSpa\" onclick=\"deleteSpa('{Title}')\"></div>\n" +
 		"                <div class=\"reUploadDiv\">\n" +
 		"                    <div class=\"btn-group dropup reUploadButton\">\n" +
 		"                        <button type=\"button\" class=\"btn btn-primary dropdown-toggle\" data-toggle=\"dropdown\">\n" +
@@ -436,16 +447,28 @@
 	}
 
 	function list() {
+        
 		spaJax('/get.pathlist', 'get', 'html').done(function(data) {
 			if (!data) {
+                getUser();
 				return;
 			}
 			var json = JSON.parse(data);
 			for (var i = 0; i < json.length; i++) {
 				render(json[i]);
 			}
+            getUser();
 		});
 	}
+    
+    function getUser(){
+        spaJax('/spa.getuser', 'get', 'html').done(function(data) {
+            window.spaUser = JSON.parse(data);
+            if(window.spaUser.Supper){
+                $('.supperSpa').show();
+            }
+        });
+    }
 
 	function render(item) {
 		var html = _templete.replaceAll("{Title}", item.Title).replaceAll("{RollbackPath}", item.RollbackPath).replaceAll("{Time}", item.Time);
@@ -478,7 +501,7 @@
 			var file = files[0];
 			data.append(file.name, file);
 		}
-		else{
+		else if($('#uploadFolderMenu').hasClass('active')){
 			//webkitRelativePath
 			var files = $("#uploadFolder")[0].files;
 			if (!files || files.length < 1) {
@@ -502,8 +525,10 @@
 				}
 				data.append(file.webkitRelativePath, file);
 			}
-		}
-		spaJax('/' + app + '.upload', 'post', 'html', data, false, true).done(end);    
+		}else{
+            //空项目
+        }
+		spaJax('/' + app + '.create', 'post', 'html', data, false, true).done(end);    
 	}
 
 	//重新并提交
@@ -649,9 +674,9 @@
 		$.ajax(ajaxSettings).done(function(response) {
 			deferred.resolve(response);
 		}).fail(function (response) {
-            if (response.status == 401) {
+            if (response.status == 403) {
 	            swal({
-		            title: "401",
+		            title: "403",
 		            text: "没有权限！",
 		            type: "error"
 				});
@@ -670,7 +695,7 @@
 
 	//全局配置json编辑器
 	function globalJson() {
-		spaJax('/getconfigjson.api', 'post', 'html',"global").done(function(response) {
+		spaJax('/global.getconfigjson', 'get', 'html').done(function(response) {
 			if (response.indexOf('err:') > -1) {
 				swal({
 					title: "",
@@ -682,6 +707,10 @@
 			showJsonModel(response,"global");
 		});
 	}
+    
+    function userAuthConfig(){
+        window.open("/spa.casbin", "_blank", "top=300, left=300, width=800, height=800, menubar=false,toolbar=false, scrollbars=yes, resizable=yes");
+    }
 
 	//展示json
 	function showJsonModel(json,type) {
@@ -705,11 +734,7 @@
 			});
 			return;
 		}
-		var data = {
-			"json" : json,
-			"type": window.jsonViewEditor.type||"global"
-		};
-		spaJax('/saveconfigjson.api', 'post', 'html', JSON.stringify(data)).done(function(response) {
+		spaJax('/'+(window.jsonViewEditor.type||"global") +'.saveconfigjson', 'post', 'html', json).done(function(response) {
 			if (response.substr(0,4) == 'err:') {
 				swal({
 					title: "",
@@ -729,7 +754,7 @@
 
 	//服务端渲染的serverjs配置
 	function serverJs(spa) {
-		spaJax('/' + spa +'-serverjsget.api', 'get', 'html').done(function(response) {
+		spaJax('/' + spa +'.serverjsget', 'get', 'html').done(function(response) {
 			if (response == 'notfound') {
 				response = 'module.exports = {\n'+
 					'  main:function (path){\n'+
@@ -753,7 +778,7 @@
 	}
 
 	function config(spa) {
-		spaJax('/getconfigjson.api', 'post', 'html',spa).done(function(response) {
+		spaJax('/'+spa +'.getconfigjson', 'get', 'html').done(function(response) {
 			if (response.indexOf('err:') > -1) {
 				swal({
 					title: "",
@@ -779,7 +804,7 @@
 			});
 			return;
 		}
-		spaJax('/'+spa+ '-serverjssave.api', 'post', 'html', code).done(function(response) {
+		spaJax('/'+spa+ '.serverjssave', 'post', 'html', code).done(function(response) {
 			if (response.substr(0,4) == 'err:') {
 				swal({
 					title: "",

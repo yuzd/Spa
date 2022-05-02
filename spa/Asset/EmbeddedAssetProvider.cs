@@ -39,7 +39,7 @@ namespace spa.Asset
         {
             path = path.Replace("/", ".").Substring(1,path.Length-1);
             if (!_pathToAssetMap.ContainsKey(path))
-                throw new FileNotFoundException(String.Format("Mapping not found - {0}", path));
+                return null;
 
             var resourceDescriptor = _pathToAssetMap[path];
             return new Asset(

@@ -5,6 +5,9 @@
     padding: 15px;
 }
 
+.supperSpa {
+    display: none;
+}
 .div {
     width: 250px;
     height: 200px;

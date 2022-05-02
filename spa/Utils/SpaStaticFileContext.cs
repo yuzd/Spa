@@ -36,7 +36,6 @@ using System.Threading.Tasks;
     private readonly StaticFileOptions _options;
     private readonly HttpRequest _request;
     private readonly HttpResponse _response;
-    private readonly ILogger _logger;
     private readonly IFileProvider _fileProvider;
     private readonly string _method;
     private readonly string _contentType;
@@ -59,7 +58,6 @@ using System.Threading.Tasks;
     public SpaStaticFileContext(
       HttpContext context,
       StaticFileOptions options,
-      ILogger logger,
       IFileProvider fileProvider,
       string? contentType,
       PathString subPath)
@@ -68,7 +66,6 @@ using System.Threading.Tasks;
       this._options = options;
       this._request = context.Request;
       this._response = context.Response;
-      this._logger = logger;
       this._fileProvider = fileProvider;
       this._method = this._request.Method;
       this._contentType = contentType;
@@ -223,7 +220,7 @@ using System.Threading.Tasks;
       if (!this.IsGetMethod)
         return;
       bool isRangeRequest;
-      (isRangeRequest, this._range) = RangeHelper.ParseRange(this._context, this.RequestHeaders, this._length, this._logger);
+      (isRangeRequest, this._range) = RangeHelper.ParseRange(this._context, this.RequestHeaders, this._length);
       this.IsRangeRequest = isRangeRequest;
     }
 
@@ -405,30 +402,25 @@ using System.Threading.Tasks;
     public static (bool isRangeRequest, RangeItemHeaderValue? range) ParseRange(
       HttpContext context,
       RequestHeaders requestHeaders,
-      long length,
-      ILogger logger)
+      long length)
     {
       StringValues range1 = context.Request.Headers.Range;
       if (StringValues.IsNullOrEmpty(range1))
       {
-        logger.LogTrace("Range header's value is empty.");
         return (false, (RangeItemHeaderValue) null);
       }
       if (range1.Count > 1 || range1[0].IndexOf(',') >= 0)
       {
-        logger.LogDebug("Multiple ranges are not supported.");
         return (false, (RangeItemHeaderValue) null);
       }
       RangeHeaderValue range2 = requestHeaders.Range;
       if (range2 == null)
       {
-        logger.LogDebug("Range header's value is invalid.");
         return (false, (RangeItemHeaderValue) null);
       }
       ICollection<RangeItemHeaderValue> ranges = range2.Ranges;
       if (ranges == null)
       {
-        logger.LogDebug("Range header's value is invalid.");
         return (false, (RangeItemHeaderValue) null);
       }
       if (ranges.Count == 0)

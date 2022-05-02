@@ -27,8 +27,8 @@ namespace spa
             //采用开源的logger查看组件查看本地日志文件
             services.AddLogDashboard(opt =>
             {
-                var localUserName = _configuration["BasicAuth:Name"];
-                var localPassword = _configuration["BasicAuth:Pwd"];
+                var localUserName = _configuration["SuperBasicAuth:Name"];
+                var localPassword = _configuration["SuperBasicAuth:Pwd"];
                 if (!string.IsNullOrEmpty(localUserName) && !string.IsNullOrEmpty(localPassword))
                 {
                     opt.AddAuthorizationFilter(new LogDashboardBasicAuthFilter(localUserName, localPassword));

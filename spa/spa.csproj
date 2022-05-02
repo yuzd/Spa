@@ -27,24 +27,25 @@
     <EmbeddedResource Include="Asset\Admin\jsoneditor.min.js" />
     <EmbeddedResource Include="Asset\Admin\sweetalert.min.js" />
     <EmbeddedResource Include="Asset\Admin\Admin.html" />
-    <EmbeddedResource Include="Asset\Editor\CasBin.html" />
+    <EmbeddedResource Include="Asset\CasBin\CasBin.html" />
 
-    <EmbeddedResource Include="Asset\Editor\css\common.css" />
-    <EmbeddedResource Include="Asset\Editor\css\policy_editor.css" />
-    <EmbeddedResource Include="Asset\Editor\js\patron_parameters.js" />
-    <EmbeddedResource Include="Asset\Editor\js\policy_editor.js" />
-    <EmbeddedResource Include="Asset\Editor\lib\bootstrap.min.css" />
-    <EmbeddedResource Include="Asset\Editor\lib\bootstrap.min.js" />
-    <EmbeddedResource Include="Asset\Editor\lib\dropdowns-enhancement.css" />
-    <EmbeddedResource Include="Asset\Editor\lib\dropdowns-enhancement.js" />
-    <EmbeddedResource Include="Asset\Editor\lib\editable-select.css" />
-    <EmbeddedResource Include="Asset\Editor\lib\editable-select.js" />
-    <EmbeddedResource Include="Asset\Editor\lib\jquery-3.1.1.min.js" />
-    <EmbeddedResource Include="Asset\Editor\lib\jquery-confirm.css" />
-    <EmbeddedResource Include="Asset\Editor\lib\jquery-confirm.min.js" />
+    <EmbeddedResource Include="Asset\CasBin\css\common.css" />
+    <EmbeddedResource Include="Asset\CasBin\css\policy_editor.css" />
+    <EmbeddedResource Include="Asset\CasBin\js\patron_parameters.js" />
+    <EmbeddedResource Include="Asset\CasBin\js\policy_editor.js" />
+    <EmbeddedResource Include="Asset\CasBin\lib\bootstrap.min.css" />
+    <EmbeddedResource Include="Asset\CasBin\lib\bootstrap.min.js" />
+    <EmbeddedResource Include="Asset\CasBin\lib\dropdowns-enhancement.css" />
+    <EmbeddedResource Include="Asset\CasBin\lib\dropdowns-enhancement.js" />
+    <EmbeddedResource Include="Asset\CasBin\lib\editable-select.css" />
+    <EmbeddedResource Include="Asset\CasBin\lib\editable-select.js" />
+    <EmbeddedResource Include="Asset\CasBin\lib\jquery-3.1.1.min.js" />
+    <EmbeddedResource Include="Asset\CasBin\lib\jquery-confirm.css" />
+    <EmbeddedResource Include="Asset\CasBin\lib\jquery-confirm.min.js" />
   </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Casbin.NET" Version="1.12.2" />
         <PackageReference Include="CSRedisCore" Version="3.6.9" />
         <PackageReference Include="Dapper" Version="2.0.123" />
         <PackageReference Include="HttpClientFactory" Version="1.0.3" />

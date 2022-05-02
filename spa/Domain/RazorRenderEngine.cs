@@ -46,7 +46,7 @@ namespace spa.Domain
         /// <summary>
         /// 记录razor的缓存
         /// </summary>
-        private ConcurrentDictionary<string, string> cacheList = new ConcurrentDictionary<string, string>();
+        private readonly ConcurrentDictionary<string, string> cacheList = new ConcurrentDictionary<string, string>();
 
         /// <summary>
         /// global appsettions.json配置文件最后更新时间
@@ -134,7 +134,7 @@ namespace spa.Domain
                     }
                     catch (Exception e)
                     {
-                        logger.Error("excute _server_.js fail:" + e.Message);
+                        logger.Error($"excute {ConfigHelper.ServerJsFile} fail:" + e.Message);
                     }
                 }
 

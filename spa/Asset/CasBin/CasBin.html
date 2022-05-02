@@ -1,0 +1,368 @@
+﻿<!DOCTYPE html>
+
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>SPA容器权限</title>
+    
+    <script type="text/javascript" src="spa/Asset/CasBin/lib/jquery-3.1.1.min.js"></script>
+    <link rel="stylesheet" href="spa/Asset/CasBin/lib/bootstrap.min.css">
+    <link rel="stylesheet" href="spa/Asset/CasBin/css/common.css">
+    <link rel="stylesheet" type="text/css" href="spa/Asset/CasBin/lib/jquery-confirm.css"/>
+    <script type="text/javascript" src="spa/Asset/CasBin/lib/jquery-confirm.min.js"></script>
+    <script src="spa/Asset/CasBin/lib/bootstrap.min.js"></script>
+    <script src="spa/Asset/CasBin/lib/dropdowns-enhancement.js"></script>
+    <link rel="stylesheet" href="spa/Asset/CasBin/lib/dropdowns-enhancement.css">
+    <link rel="stylesheet" href="spa/Asset/CasBin/css/policy_editor.css">
+    <script src="spa/Asset/CasBin/js/patron_parameters.js"></script>
+    <script src="spa/Asset/CasBin/js/policy_editor.js"></script>
+    <script src="spa/Asset/CasBin/lib/editable-select.js"></script>
+    <link rel="stylesheet" href="spa/Asset/CasBin/lib/editable-select.css">
+    <link rel="icon" href="spa/Asset/Admin/favicon.ico">
+</head>
+<body>
+
+<div class="container">
+    <h3 style="text-align: center;margin-top: 1vh;margin-bottom: 1vh"><b>用户列表</b></h3>
+    <div id="excel_user">
+    </div>
+    
+	<h3 style="text-align: center;margin-top: 1vh;margin-bottom: 1vh"><b>权限配置</b></h3>
+	<div id="excel">
+	</div>
+
+	<div style="text-align: center;padding-top:1vh;padding-bottom: 2vh">
+		<button type="button" class="btn btn-success btn-block"
+		        onclick="postPolicyToServer()">保存权限配置
+		</button>
+	</div>
+
+    <h3 style="text-align: center;margin-top: 1vh;margin-bottom: 1vh"><b>API(资源路径)列表</b></h3>
+    <div id="excel_api">
+    </div>
+</div>
+
+
+<script>
+      
+        var current_json = new Object();
+        var custom_rule = new Object();
+        var policy_name;
+        var tenant_id;
+        let row=0,column=4;
+        let policyjson = [];
+        let policyObj;
+        $(document).ready(function () {
+            spaJax('/spa.getusers', 'get', 'html').done(function(data) {
+                if (!data) {
+                    return;
+                }
+                var apilist = JSON.parse(data);
+                showExcelUser(apilist);
+            });
+            
+            spaJax('/spa.getapis', 'get', 'html').done(function(data) {
+                if (!data) {
+                    return;
+                }
+                var apilist = JSON.parse(data);
+                showExcelApi(apilist);
+            });
+
+            spaJax('/spa.getpolicy', 'get', 'html').done(function(data) {
+                if (!data) {
+                    return;
+                }
+                policyjson = JSON.parse(data);
+                row = policyjson.length;
+                policyObj = [];
+                for(let i=0;i<row;i++){
+                    if(policyjson[i]=="") continue;//跳过空行
+                    policyObj[i] = (policyjson[i]+"").split(", ");
+                }
+                showExcel(policyObj);
+            });
+        });
+
+        //封装ajax请求
+        function spaJax(path, method, type, data, async, isFile) {
+            var deferred = $.Deferred();
+            var ajaxSettings = {
+                url: path,
+                data: data,
+                dataType: type,
+                method: method,
+                beforeSend: function() {
+                    $('.loading').show();
+                },
+                complete: function() {
+                    $('.loading').hide();
+                }
+            };
+
+            if (async) {
+                ajaxSettings.async = async;
+            }
+            if (isFile) {
+                ajaxSettings.contentType = false;
+                ajaxSettings.processData = false;
+            }
+            $.ajax(ajaxSettings).done(function(response) {
+                deferred.resolve(response);
+            }).fail(function (response) {
+                if (response.status == 403) {
+                    swal({
+                        title: "403",
+                        text: "没有权限！",
+                        type: "error"
+                    });
+                    deferred.reject(response);
+                    return;
+                }
+                swal({
+                    title: "",
+                    text: "访问出错！",
+                    type: "error"
+                });
+                deferred.reject(response);
+            });
+            return deferred;
+        }
+        function appendUserBody(){
+            $.confirm({
+                title: '新增用户(名称相同则覆盖旧密码)',
+                content: '' +
+                    '<form action="" class="formName">' +
+                    '<div class="form-group">' +
+                    '<input type="text" placeholder="登录用户名" style="width: 200px;" class="name form-control" required />' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                    '<input type="password" placeholder="登录密码" style="width: 200px;" class="password form-control" required />' +
+                    '</div>' +
+                    '</form>',
+                buttons: {
+                    formSubmit: {
+                        text: 'Submit',
+                        btnClass: 'btn-blue',
+                        action: function () {
+                            var name = this.$content.find('.name').val();
+                            if(!name){
+                                $.alert('请输入用户名');
+                                return false;
+                            }
+
+                            var pwd = this.$content.find('.password').val();
+                            if(!name){
+                                $.alert('请输入密码');
+                                return false;
+                            }
+                            var  json = {
+                                "LoginName":name,
+                                "Pwd":pwd
+                            };
+                            spaJax('/spa.addspauser', 'post', 'html', JSON.stringify(json)).done(function(response) {
+                                if (response.substr(0,4) == 'err:') {
+                                    niceAlert(response,false);
+                                    return;
+                                }
+                                niceAlert(response,true);
+                                window.location.reload();
+                            });
+
+                        }
+                    },
+                    cancel: function () {
+                        //close
+                    },
+                },
+                onContentReady: function () {
+                    // bind to events
+                    var jc = this;
+                    this.$content.find('form').on('submit', function (e) {
+                        // if the user submits the form by pressing enter in the field.
+                        e.preventDefault();
+                        jc.$$formSubmit.trigger('click'); // reference the button and click it
+                    });
+                }
+            });
+        }
+        function getExtraColumnHead(const_column_length){
+            if(column>const_column_length) {
+                let count = 1;
+                let head = "";
+                for (let i = column - (const_column_length+1); i >= 0; i--) {
+                    head = head + "<th style='text-align: center'>"+ "自定义列" + count++ +"<a class='pointer-as-hand' onclick='deleteColumn($(this))'>(删除列)</a></th>";
+                }
+                return head;
+            }else{
+                return "";
+            }
+        }
+
+        function deleteColumn($btnObj){
+            let index = $btnObj.parent().parent().children().index($btnObj.parent());
+            column--;
+            $("#exceltable tr :nth-child("+(index+1)+")").remove();
+        }
+
+        function showExcel(policyarrays) {
+            $("#excel").empty();
+            let const_head = '<table class="table table-bordered table-condensed table-striped" id="exceltable"><thead><th style="text-align: center">规则类型</th><th style="text-align: center">登录用户</th><th style="text-align: center">单页面名称</th><th style="text-align: center">资源路径(参考下方)</th><th style="text-align: center">操作<a class="pointer-as-hand" onclick="appendBody($(this))">(插入行)</a></th></thead><tbody id="excelbody">';
+//            let const_head = '<table class="table table-bordered table-condensed table-striped" id="exceltable"><thead><th style="text-align: center">规则类型</th><th style="text-align: center">租户</th><th style="text-align: center">用户</th><th style="text-align: center">资源路径</th><th style="text-align: center">操作</th><th style="text-align: center">服务</th><th style="text-align: center">授权</th>';
+            let list_html_head = const_head + '';//+'<th style="text-align: center;width:8em"><span>选项</span><a class="pointer-as-hand" onclick="insertColumn()">(插入列)</a></th></thead><tbody id="excelbody">'
+            let list_html_body = "";
+            let list_html_foot = '</tbody></table>';
+            policyarrays.forEach(function (element, index) {
+                list_html_body = list_html_body + getRow(element);
+            });
+            $("#excel").html(list_html_head+list_html_body+list_html_foot);
+        }
+
+        function showExcelUser(policyarrays) {
+            $("#excel_user").empty();
+            let const_head = '<table class="table table-bordered table-condensed table-striped" id="exceltable"><thead><th style="text-align: center">登录用户</th><th style="text-align: center">操作<a class="pointer-as-hand" onclick="appendUserBody($(this))">(新增用户)</a></th></thead><tbody id="excelbody3">';
+
+//            let const_head = '<table class="table table-bordered table-condensed table-striped" id="exceltable"><thead><th style="text-align: center">规则类型</th><th style="text-align: center">租户</th><th style="text-align: center">用户</th><th style="text-align: center">资源路径</th><th style="text-align: center">操作</th><th style="text-align: center">服务</th><th style="text-align: center">授权</th>';
+            let list_html_head = const_head + '';//+'<th style="text-align: center;width:8em"><span>选项</span><a class="pointer-as-hand" onclick="insertColumn()">(插入列)</a></th></thead><tbody id="excelbody">'
+            let list_html_body = "";
+            let list_html_foot = '</tbody></table>';
+            policyarrays.forEach(function (element, index) {
+                list_html_body = list_html_body + getApiUser(element);
+            });
+            $("#excel_user").html(list_html_head+list_html_body+list_html_foot);
+        }
+        function showExcelApi(policyarrays) {
+            $("#excel_api").empty();
+            let const_head = '<table class="table table-bordered table-condensed table-striped" id="exceltable"><thead><th style="text-align: center">名称</th><th style="text-align: center">描述</th><th style="text-align: center">资源路径</th></thead><tbody id="excelbody2">';
+//            let const_head = '<table class="table table-bordered table-condensed table-striped" id="exceltable"><thead><th style="text-align: center">规则类型</th><th style="text-align: center">租户</th><th style="text-align: center">用户</th><th style="text-align: center">资源路径</th><th style="text-align: center">操作</th><th style="text-align: center">服务</th><th style="text-align: center">授权</th>';
+            let list_html_head = const_head + '';//+'<th style="text-align: center;width:8em"><span>选项</span><a class="pointer-as-hand" onclick="insertColumn()">(插入列)</a></th></thead><tbody id="excelbody">'
+            let list_html_body = "";
+            let list_html_foot = '</tbody></table>';
+            policyarrays.forEach(function (element, index) {
+                list_html_body = list_html_body + getApiRow(element);
+            });
+            $("#excel_api").html(list_html_head+list_html_body+list_html_foot);
+        }
+        function getApiRow(array){
+            var html = "<tr>";
+            for (var field in array ) {
+                html = html + '<td align="center"><input style="width:100%"  value="' + array[field] + '" readonly></td>';
+            }
+            html = html + "</tr>";
+            return html;
+        }
+        function getApiUser(array){
+            var html = "<tr>";
+            for (var field in array ) {
+                html = html + '<td align="center"><input style="width:100%"  value="' + array[field] + '" readonly></td>'
+                + '<td align="center"><a class="pointer-as-hand" onclick="deleteCurrentApi($(this))">删除用户</a></td>';//添加删除行
+            }
+            html = html + "</tr>";
+            return html;
+        }
+        function deleteCurrentApi(ele){
+            var user = $(ele).parent().parent().find('input').val();
+            if(!user){
+                return;
+            }
+
+            spaJax('/'+ user +'.deleteuser', 'get', 'html').done(function(data) {
+                window.location.reload();
+            });
+            
+        }
+        function insertColumn(){
+            column++;
+            showExcel(policyObj);
+        }
+
+        function appendBody(){
+            $('#excelbody').append(getRow([]));
+        }
+       
+        
+        function getRow(array){
+            var html = "<tr>";
+            for(var i=0;i<column;i++){
+                if(i<array.length){
+	                if (i == 0) { //要用选择框
+		                if (array[i] == 'p') {
+			                html = html + '<td align="center"><select style="width:9vw" oninput="onInputRed($(this))"> <option selected>p</option><option>g</option></td>';
+		                } else {
+			                html = html + '<td align="center"><select style="width:9vw" oninput="onInputRed($(this))"> <option>p</option><option selected>g</option></td>';
+		                }
+	                } else {
+		                html = html + '<td align="center"><input style="width:9vw" oninput="onInputRed($(this))" value="' + array[i] + '"></td>';
+
+	                } 
+                }else{
+                    if (i == 0) { //要用选择框
+                        html = html + '<td align="center"><select style="width:9vw" oninput="onInputRed($(this))"> <option selected>p</option><option>g</option></td>';
+                    }else{
+                        html = html + '<td align="center"><input style="width:9vw" oninput="onInputRed($(this))" value=""></td>';//不够就补上空的输入框
+                    }
+                }
+            }
+            html = html + '<td align="center"><a class="pointer-as-hand" onclick="insertRow($(this))">插入行</a>&nbsp;<a class="pointer-as-hand" onclick="deleteCurrentRow($(this))">删除行</a></td>';//添加删除行
+            html = html + "</tr>";
+            return html;
+        }
+
+        function onInputRed(inputObj){
+            if(inputObj.val()!=""){
+                inputObj.css("border-color","initial");
+            }
+        }
+
+        function deleteCurrentRow(deleteBtnObj){
+            deleteBtnObj.parent().parent().remove();
+        }
+
+        function insertRow(addBtnObj){
+            addBtnObj.parent().parent().after(getRow([]));
+        }
+
+        //post并后退
+        function postPolicyToServer() {
+            policyObj = [];
+            let hasNullInput = false;
+            //检测是否有空
+            $("#excelbody").children("tr").each(function () {
+                $(this).children("td").each(function (index,element) {
+                    let input = $(this).find("input").first();
+
+                    if(input.length>0){
+                        if(input.val()=="" && index<=2){//前三个必须非空
+                            input.css("border-color","red");
+                            hasNullInput = true;
+                        }else{
+                            input.css("border-color","initial");
+                        }
+                    }
+                });
+            });
+
+            if(hasNullInput==false) {
+                $("#excelbody").children("tr").each(function () {
+                    let tempString = "";
+                    $(this).children("td").each(function () {
+                        if ($(this).find("select").length!=0 && $(this).find("select").val() != "") {//跳过空的和操作行
+                            tempString = tempString + $(this).find("select").val() + ", ";
+                        }
+                        else if ($(this).find("input").length!=0 && $(this).find("input").val() != "") {//跳过空的和操作行
+                            tempString = tempString + $(this).find("input").val() + ", ";
+                        }
+                    });
+                    policyObj.push(tempString.substring(0, tempString.length - 2));
+                });
+               
+                spaJax('/spa.savepolicy', 'post', 'html',JSON.stringify(policyObj)).done(function(data) {
+                    niceAlert(data,true);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

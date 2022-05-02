@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using spa.Filter;
 using spa.Utils;
 
 namespace spa.Domain
@@ -47,7 +48,12 @@ namespace spa.Domain
                 }
 
                 // 当前refer 或者 cookie
-                var headersReferer = context.Request.Headers.Referer.ToString().Split('/').LastOrDefault();
+                string str1 = context.Request.Scheme ?? string.Empty;
+                string str2 = context.Request.Host.Value ?? string.Empty;
+                PathString pathString = context.Request.PathBase;
+                string str3 = pathString.Value ?? string.Empty;
+                var rawUrl = str1+"://"+str2+str3+"/";
+                var headersReferer = context.Request.Headers.Referer.ToString().Replace(rawUrl,"").Split('/').FirstOrDefault();
                 var cookieProject = context.Request.Cookies["spa_project"];
                 var isFromSpa = (cookieProject != null && headersReferer != null && cookieProject == headersReferer);
                 var isFile = _contentTypeProvider.TryGetContentType(pathValue.ToLower(), out var contentType);
@@ -55,7 +61,7 @@ namespace spa.Domain
                     !pathValue.ToLower().StartsWith("/" + cookieProject))
                 {
                     // 来自spa的静态文件请求 但是又没有
-                    SpaStaticFileContext staticFileContext = new SpaStaticFileContext(context, this._options.Value, this._logger,
+                    SpaStaticFileContext staticFileContext = new SpaStaticFileContext(context, this._options.Value,
                         _hostingEnv.WebRootFileProvider, contentType, "/" + cookieProject + pathValue);
                     if (staticFileContext.LookupFileInfo())
                     {

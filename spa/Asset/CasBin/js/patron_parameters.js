@@ -5,6 +5,8 @@ function sleep(startMs,sleepDurationMs){
     while(((new Date()).getTime()-startMs)<=sleepDurationMs) {}
 }
 
+
+
 function niceAlert(text,isSuccess){
     $.alert({
         animation: 'none',
