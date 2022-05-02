@@ -73,13 +73,13 @@ namespace spa.Utils
         /// <returns></returns>
         public static string GetConfig(string key, string defaultValue = default)
         {
-            var value = Environment.GetEnvironmentVariable(key.Replace(":", "_"));
+            var value =  _configuration[key];;
             if (string.IsNullOrEmpty(value))
             {
-                return _configuration[key];
+                return defaultValue;
             }
 
-            return defaultValue;
+            return value;
         }
 
 

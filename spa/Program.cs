@@ -18,6 +18,7 @@ namespace spa
             var logger = NLog.Web.NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
             try
             {
+                logger.Info("starting");
                 CreateHostBuilder(args).Build().Run();
             }
             catch (Exception ex)
@@ -51,7 +52,7 @@ namespace spa
 #else
                              logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
 #endif
-                        }).UseNLog();
+                        }).UseNLog().UseUrls("http://*:5555");
                 });
 
 

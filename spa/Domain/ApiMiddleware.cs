@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -26,8 +27,12 @@ namespace spa.Domain
     public class ApiMiddleware
     {
         private readonly RequestDelegate _next;
+        private static readonly Logger logger;
 
-
+        static ApiMiddleware()
+        {
+            logger = LogManager.GetCurrentClassLogger();
+        }
         public ApiMiddleware(RequestDelegate next)
         {
             _next = next;
@@ -164,6 +169,7 @@ namespace spa.Domain
                     LoginName = username
                 };
             }
+            
 
             if (isHtml && path.ToLower() == "casbin")
             {
