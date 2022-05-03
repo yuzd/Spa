@@ -31,6 +31,10 @@ public class SpaDomain
         logger = LogManager.GetCurrentClassLogger();
     }
 
+    /// <summary>
+    /// ctor
+    /// </summary>
+    /// <param name="engine"></param>
     public SpaDomain(RazorRenderEngine engine)
     {
         _engine = engine;
@@ -55,16 +59,28 @@ public class SpaDomain
             .ToDictionary(r => r.Name, y => y.Method);
     }
 
+    /// <summary>
+    /// 判断是否有对应的api进行处理
+    /// </summary>
+    /// <param name="api"></param>
+    /// <returns></returns>
     internal bool IsSpaApi(string api)
     {
         return this.apiList.ContainsKey(api);
     }
 
+    /// <summary>
+    /// 获取对应的api
+    /// </summary>
+    /// <param name="api"></param>
+    /// <returns></returns>
     internal MethodInfo getApi(string api)
     {
         this.apiList.TryGetValue(api, out var methodInfo);
         return methodInfo;
     }
+
+    #region SpaApi
 
     /// <summary>
     /// 获取Api列表
@@ -76,22 +92,9 @@ public class SpaDomain
     {
         var apilist = getApiNames();
         context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(apilist));
+        await context.Response.WriteAsync(JsonConvert.SerializeObject(apilist));
     }
 
-    private IEnumerable<SpaApiItem> getApiNames()
-    {
-        var apilist = from api in this.apiList
-            let sp = api.Value.GetCustomAttribute<SpaApi>()
-            where sp != null && !sp.NotCheck && sp.SupperRequired != "*"
-            select new SpaApiItem
-            {
-                api = api.Key,
-                name = sp.Name,
-                url = "/" + api.Key
-            };
-        return apilist;
-    }
 
     /// <summary>
     /// 获取用户列表 非supper
@@ -104,19 +107,19 @@ public class SpaDomain
         var jsonFile = Path.Combine(ConfigHelper.WebRootPath, ConfigHelper.CasBinUserSettingsFile);
         if (!File.Exists(jsonFile))
         {
-            await context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(new List<String>()));
+            await context.Response.WriteAsync(JsonConvert.SerializeObject(new List<String>()));
             return;
         }
 
-        var userList = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<String, String>>(await File.ReadAllTextAsync(jsonFile));
+        var userList = JsonConvert.DeserializeObject<Dictionary<String, String>>(await File.ReadAllTextAsync(jsonFile));
         if (userList == null || !userList.Any())
         {
-            await context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(new List<String>()));
+            await context.Response.WriteAsync(JsonConvert.SerializeObject(new List<String>()));
             return;
         }
 
         context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(userList.Keys.Select(r => new { name = r }).ToList()));
+        await context.Response.WriteAsync(JsonConvert.SerializeObject(userList.Keys.Select(r => new { name = r }).ToList()));
     }
 
     /// <summary>
@@ -135,7 +138,7 @@ public class SpaDomain
             return;
         }
 
-        var user = Newtonsoft.Json.JsonConvert.DeserializeObject<SpaUser>(json);
+        var user = JsonConvert.DeserializeObject<SpaUser>(json);
         if (user == null || String.IsNullOrEmpty(user.LoginName) || String.IsNullOrEmpty(user.Pwd))
         {
             await context.Response.WriteAsync($"err: data is error!");
@@ -148,7 +151,7 @@ public class SpaDomain
             await File.WriteAllTextAsync(jsonFile, "{}");
         }
 
-        var userList = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<String, String>>(await File.ReadAllTextAsync(jsonFile));
+        var userList = JsonConvert.DeserializeObject<Dictionary<String, String>>(await File.ReadAllTextAsync(jsonFile));
         if (userList != null)
         {
             userList[user.LoginName] = user.Pwd;
@@ -173,7 +176,7 @@ public class SpaDomain
             return;
         }
 
-        var userList = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<String, String>>(await File.ReadAllTextAsync(jsonFile));
+        var userList = JsonConvert.DeserializeObject<Dictionary<String, String>>(await File.ReadAllTextAsync(jsonFile));
         if (userList == null)
         {
             await context.Response.WriteAsync("success");
@@ -209,7 +212,7 @@ public class SpaDomain
         }
 
         context.Response.ContentType = "application/json";
-        await context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(spaUser));
+        await context.Response.WriteAsync(JsonConvert.SerializeObject(spaUser));
     }
 
     /// <summary>
@@ -301,7 +304,7 @@ public class SpaDomain
             return;
         }
 
-        var list = Newtonsoft.Json.JsonConvert.DeserializeObject<List<String>>(json);
+        var list = JsonConvert.DeserializeObject<List<String>>(json);
         await File.WriteAllTextAsync(filePath, String.Join(Environment.NewLine, list!));
         await context.Response.WriteAsync("success");
     }
@@ -324,7 +327,7 @@ public class SpaDomain
 
         var data = await File.ReadAllLinesAsync(filePath);
         var list = data.Where(r => !string.IsNullOrEmpty(r) && r.Length > 5);
-        await context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(list));
+        await context.Response.WriteAsync(JsonConvert.SerializeObject(list));
     }
 
     /// <summary>
@@ -379,9 +382,10 @@ public class SpaDomain
         var folderList = Directory.GetDirectories(ConfigHelper.WebRootPath);
         var list = (from d in folderList
                 let f = new DirectoryInfo(d)
+                let indexHtml = Path.Combine(f.FullName,"index.html")
                 let auth = spaUser!.Supper || (apilist.Any(y => e.Auth(spaUser.LoginName, f.Name, y.url)))
                 let last = GetFirstBackup(f.Name)
-                where f.Name != "admin" && f.Name != "_backup_" && auth
+                where File.Exists(indexHtml) && f.Name != "admin" && f.Name != "_backup_" && auth
                 select new SpaModel
                 {
                     Title = f.Name,
@@ -393,7 +397,7 @@ public class SpaDomain
             )
             .ToList();
         context.Response.ContentType = "application/json";
-        return context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(list));
+        return context.Response.WriteAsync(JsonConvert.SerializeObject(list));
     }
 
     /// <summary>
@@ -494,6 +498,8 @@ public class SpaDomain
         await File.WriteAllTextAsync(jsonFile, json);
         await context.Response.WriteAsync($"success");
     }
+
+    #endregion
 
 
     /// <summary>
@@ -807,6 +813,11 @@ public class SpaDomain
         return ((lastFile.Item1,lastFile.Item2 ),(rollFile.Item1,rollFile.Item2));
     }
 
+    /// <summary>
+    /// 获取备份列表
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
     private List<string> GetBackupList(string path)
     {
         var resultList = new List<string>();
@@ -823,5 +834,23 @@ public class SpaDomain
             .Select(Newtonsoft.Json.JsonConvert.SerializeObject)
             .ToList();
         return backupFiles;
+    }
+    
+    /// <summary>
+    /// 获取api明细
+    /// </summary>
+    /// <returns></returns>
+    private IEnumerable<SpaApiItem> getApiNames()
+    {
+        var apilist = from api in this.apiList
+            let sp = api.Value.GetCustomAttribute<SpaApi>()
+            where sp != null && !sp.NotCheck && sp.SupperRequired != "*"
+            select new SpaApiItem
+            {
+                api = api.Key,
+                name = sp.Name,
+                url = "/" + api.Key
+            };
+        return apilist;
     }
 }

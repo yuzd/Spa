@@ -101,8 +101,7 @@ namespace spa.Utils
                 File.CreateText(csv);
             }
 
-            using var fs = new FileStream(csv, FileMode.Open, FileAccess.Read, FileShare.Read);
-            IAdapter a = new DefaultFileAdapter(fs);
+            IAdapter a = new DefaultFileAdapter(csv);
             e.SetModel(m);
             e.SetAdapter(a);
             e.LoadPolicy();

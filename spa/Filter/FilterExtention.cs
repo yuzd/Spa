@@ -38,33 +38,33 @@ namespace spa.Filter
 
             ConfigHelper.BackupPath = Path.Combine(env.WebRootPath, "_backup_");
 
-            //对于敏感的文件不让访问
+            // 对于敏感的文件不让访问
             app.UseNotAllowedFileFilter();
-            //对于内置的静态文件访问
+            // 对于内置的静态文件访问
             app.UseEmbeddedAsset();
-            //内置Admin管理页面
+            // 内置Admin管理页面
             app.UseEmbeddedPage("admin");
-            //内置的casbin管理页面
+            // 内置的casbin管理页面
             app.UseEmbeddedPage("casbin");
 
             //内部api
             app.UseWhen(
                 c =>
                 {
+                    // 检查路由是否满足要求
                     if (!ApiMiddleware.CanInvoke(c, out var route))
                     {
                         return false;
                     }
-
-                    var apiMiddleware = c.RequestServices.GetService<SpaDomain>();
-                    return apiMiddleware?.IsSpaApi(route.Item2) ?? false;
+                    // 路由满足后检查api是否存在
+                    return c.RequestServices.GetService<SpaDomain>()?.IsSpaApi(route.Item2) ?? false;
                 },
                 _ => _.UseMiddleware<ApiMiddleware>());
 
-            //扩展静态文件访问
+            // 扩展静态文件访问
             app.UseAllowedFileFilter();
 
-            //使用js引擎
+            // 使用js引擎
             app.UseMiddleware<RenderEngineMiddleware>();
 
             CreateDefaultFile();
@@ -94,9 +94,7 @@ namespace spa.Filter
             foreach (var resourceName in thisAssembly.GetManifestResourceNames())
             {
                 if (!resourceName.StartsWith("spa.Asset")) continue; // original assets only
-
                 var path = resourceName.Replace("\\", "/");
-
                 _pathToAssetMap[path.ToLower()] = new EmbeddedAssetDescriptor(thisAssembly, resourceName, false);
             }
 
